@@ -1,0 +1,3 @@
+user default off resetchannels -@all
+user gond on >gond ~gond:* &* +@all -@dangerous -@admin
+user gond_readonly on >gond_ro ~gond:* &* +@read +@connection -@dangerous

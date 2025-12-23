@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: go-nd-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gond
+      POSTGRES_PASSWORD: gond
+      POSTGRES_DB: gond
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gond -d gond"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:9
+    container_name: go-nd-valkey
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+      - ./valkey/users.acl:/etc/valkey/users.acl:z
+    command: >
+      valkey-server
+      --aclfile /etc/valkey/users.acl
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-u", "valkey://gond:gond@localhost:6379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  valkey_data:
