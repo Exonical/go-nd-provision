@@ -61,8 +61,9 @@ type SwitchPort struct {
 	Name        string         `gorm:"not null;uniqueIndex:idx_switch_port" json:"name"`
 	PortNumber  string         `json:"port_number"`
 	Description string         `json:"description"`
-	Status      string         `json:"status"`
+	AdminState  string         `json:"admin_state"` // NDFC admin state: "true"=enabled, "false"=disabled
 	Speed       string         `json:"speed"`
+	IsPresent   bool           `gorm:"default:true" json:"is_present"` // false if not seen in recent sync
 	SwitchID    string         `gorm:"index;not null;uniqueIndex:idx_switch_port" json:"switch_id"`
 	Switch      *Switch        `gorm:"foreignKey:SwitchID" json:"switch,omitempty"`
 	CreatedAt   time.Time      `json:"created_at"`

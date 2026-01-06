@@ -2,12 +2,15 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/banglin/go-nd/internal/cache"
 	"github.com/banglin/go-nd/internal/config"
 	"github.com/banglin/go-nd/internal/logger"
 	"github.com/banglin/go-nd/internal/models"
@@ -33,9 +36,10 @@ var SharedContracts = []SharedContractAssociation{
 
 // JobService handles job provisioning and deprovisioning
 type JobService struct {
-	db       *gorm.DB
-	ndClient *ndclient.Client
-	cfg      *config.NexusDashboardConfig
+	db            *gorm.DB
+	ndClient      *ndclient.Client
+	cfg           *config.NexusDashboardConfig
+	deployBatcher *DeployBatcher
 
 	// Cache for shared group IDs (refreshed periodically)
 	sharedGroupCache     map[string]int // groupName -> groupID
@@ -44,12 +48,33 @@ type JobService struct {
 	sharedGroupCacheTTL  time.Duration
 }
 
+// Deploy batching configuration
+const (
+	deployDebounceTime = 5 * time.Second  // Wait this long after last request before deploying
+	deployMaxWaitTime  = 20 * time.Second // Maximum time to wait before forcing deploy
+)
+
+// Valkey cache configuration
+const (
+	cacheKeyPrefix       = "ndfc:"
+	sharedGroupsCacheTTL = 10 * time.Minute
+	vrfExistsCacheTTL    = 15 * time.Minute
+	netExistsCacheTTL    = 15 * time.Minute
+	netVLANCacheTTL      = 30 * time.Minute
+	negativeCacheTTL     = 2 * time.Minute // Shorter TTL for "not found" results
+	cacheOpTimeout       = 2 * time.Second
+	refreshLockTTL       = 10 * time.Second
+	switchDeployCooldown = 15 * time.Second // Throttle per-switch deploys
+	cacheJitterPct       = 0.15             // ±15% TTL jitter to prevent synchronized expiry
+)
+
 // NewJobService creates a new JobService
 func NewJobService(db *gorm.DB, ndClient *ndclient.Client, cfg *config.NexusDashboardConfig) *JobService {
 	return &JobService{
 		db:                  db,
 		ndClient:            ndClient,
 		cfg:                 cfg,
+		deployBatcher:       NewDeployBatcher(ndClient, deployDebounceTime, deployMaxWaitTime),
 		sharedGroupCache:    make(map[string]int),
 		sharedGroupCacheTTL: 5 * time.Minute,
 	}
@@ -60,7 +85,6 @@ type ProvisionInput struct {
 	SlurmJobID   string
 	Name         string
 	ComputeNodes []string
-	DurationDays int
 }
 
 // ProvisionResult represents the result of job provisioning
@@ -165,17 +189,15 @@ func (s *JobService) Provision(ctx context.Context, input ProvisionInput) (*Prov
 			SubmittedAt:  now,
 		}
 
-		if input.DurationDays > 0 {
-			expiresAt := now.AddDate(0, 0, input.DurationDays)
-			job.ExpiresAt = &expiresAt
-		}
-
 		if err := tx.Create(&job).Error; err != nil {
 			return fmt.Errorf("failed to create job: %w", err)
 		}
 
 		// Collect job-compute node links and port info
+		// Validate that all nodes have port mappings with switch assignments
 		jobNodes := make([]models.JobComputeNode, 0, len(computeNodes))
+		var nodesWithoutPorts []string
+
 		for _, node := range computeNodes {
 			jobNodes = append(jobNodes, models.JobComputeNode{
 				ID:            uuid.New().String(),
@@ -191,8 +213,11 @@ func (s *JobService) Provision(ctx context.Context, input ProvisionInput) (*Prov
 				return fmt.Errorf("failed to get port mappings for %s: %w", node.Name, err)
 			}
 
+			// Check if node has valid port mappings (with switch assignment)
+			hasValidMapping := false
 			for _, mapping := range mappings {
 				if mapping.SwitchPort != nil && mapping.SwitchPort.Switch != nil {
+					hasValidMapping = true
 					portSelectors = append(portSelectors, ndclient.NetworkPortSelector{
 						Network:       networkName,
 						SwitchID:      mapping.SwitchPort.Switch.SerialNumber,
@@ -205,6 +230,15 @@ func (s *JobService) Provision(ctx context.Context, input ProvisionInput) (*Prov
 					})
 				}
 			}
+
+			if !hasValidMapping {
+				nodesWithoutPorts = append(nodesWithoutPorts, node.Name)
+			}
+		}
+
+		// Reject job if any nodes lack port+switch assignments
+		if len(nodesWithoutPorts) > 0 {
+			return fmt.Errorf("compute nodes missing port/switch assignments (cannot schedule): %v", nodesWithoutPorts)
 		}
 
 		// Bulk insert job-compute node links
@@ -320,6 +354,11 @@ func (s *JobService) provisionNDFC(ctx context.Context, job *models.Job, portInf
 	ctx, cancel := context.WithTimeout(ctx, ndfcProvisionTimeout)
 	defer cancel()
 
+	// 0. Pre-flight validation: verify VRF and Network exist in NDFC
+	if err := s.validateNDFCResources(ctx, fabricName, vrfName, networkName); err != nil {
+		return fmt.Errorf("pre-flight validation failed: %w", err)
+	}
+
 	// 1. Configure and attach ports to network (with dedicated timeout)
 	ifCtx, ifCancel := context.WithTimeout(ctx, ndfcInterfaceTimeout)
 	err := s.configureInterfaces(ifCtx, portInfos, fabricName, networkName, slurmJobID)
@@ -422,7 +461,161 @@ func (s *JobService) provisionNDFC(ctx context.Context, job *models.Job, portInf
 	s.createContractAndAssociations(secCtx, fabricName, vrfName, job.ContractName, groupName, groupID)
 	secCancel()
 
+	// 7. Deploy fabric configuration to apply security changes (batched)
+	// Uses DeployBatcher to coalesce multiple rapid job requests into a single deploy.
+	// This prevents "deploy already in progress" errors when jobs arrive quickly.
+	if err := s.deployBatcher.RequestDeploy(ctx, fabricName); err != nil {
+		logger.Warn("Failed to deploy fabric config after security setup",
+			zap.String("fabric", fabricName),
+			zap.String("job", job.SlurmJobID),
+			zap.Error(err))
+		// Non-fatal: security objects are created, deploy can be retried
+	} else {
+		logger.Info("Deployed fabric configuration",
+			zap.String("fabric", fabricName),
+			zap.String("job", job.SlurmJobID))
+	}
+
 	return nil
+}
+
+// validateNDFCResources validates that required NDFC resources (VRF, Network) exist before provisioning
+// Uses Valkey caching to reduce NDFC calls (positive cache longer, negative cache shorter)
+func (s *JobService) validateNDFCResources(ctx context.Context, fabricName, vrfName, networkName string) error {
+	lanFabric := s.ndClient.LANFabric()
+
+	// Validate VRF exists
+	if vrfName != "" {
+		vrfExists, err := s.checkVRFExistsWithCache(ctx, lanFabric, fabricName, vrfName)
+		if err != nil {
+			return fmt.Errorf("failed to check VRF %q: %w", vrfName, err)
+		}
+		if !vrfExists {
+			return fmt.Errorf("VRF %q does not exist in fabric %q", vrfName, fabricName)
+		}
+		logger.Debug("VRF validated", zap.String("vrf", vrfName), zap.String("fabric", fabricName))
+	}
+
+	// Validate Network exists
+	if networkName != "" {
+		networkExists, err := s.checkNetworkExistsWithCache(ctx, lanFabric, fabricName, networkName)
+		if err != nil {
+			return fmt.Errorf("failed to check network %q: %w", networkName, err)
+		}
+		if !networkExists {
+			return fmt.Errorf("network %q does not exist in fabric %q", networkName, fabricName)
+		}
+		logger.Debug("Network validated", zap.String("network", networkName), zap.String("fabric", fabricName))
+	}
+
+	return nil
+}
+
+// checkVRFExistsWithCache checks if VRF exists, using Valkey cache
+func (s *JobService) checkVRFExistsWithCache(ctx context.Context, lanFabric *lanfabric.Service, fabricName, vrfName string) (bool, error) {
+	cacheKey := cacheKeyPrefix + fabricName + ":vrf_exists:" + vrfName
+
+	// Try cache first
+	if valkeyClient := cache.Client; valkeyClient != nil {
+		cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+		cached, err := valkeyClient.GetString(cacheCtx, cacheKey)
+		cancel()
+		if err == nil {
+			return cached == "1", nil
+		}
+	}
+
+	// Fetch from NDFC
+	exists, err := lanFabric.VRFExists(ctx, fabricName, vrfName)
+	if err != nil {
+		return false, err
+	}
+
+	// Cache result (positive longer, negative shorter)
+	if valkeyClient := cache.Client; valkeyClient != nil {
+		cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+		ttl := vrfExistsCacheTTL
+		if !exists {
+			ttl = negativeCacheTTL
+		}
+		val := "0"
+		if exists {
+			val = "1"
+		}
+		_ = valkeyClient.SetString(cacheCtx, cacheKey, val, jitterTTL(ttl, cacheJitterPct))
+		cancel()
+	}
+
+	return exists, nil
+}
+
+// checkNetworkExistsWithCache checks if network exists, using Valkey cache
+func (s *JobService) checkNetworkExistsWithCache(ctx context.Context, lanFabric *lanfabric.Service, fabricName, networkName string) (bool, error) {
+	cacheKey := cacheKeyPrefix + fabricName + ":net_exists:" + networkName
+
+	// Try cache first
+	if valkeyClient := cache.Client; valkeyClient != nil {
+		cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+		cached, err := valkeyClient.GetString(cacheCtx, cacheKey)
+		cancel()
+		if err == nil {
+			return cached == "1", nil
+		}
+	}
+
+	// Fetch from NDFC
+	exists, err := lanFabric.NetworkExists(ctx, fabricName, networkName)
+	if err != nil {
+		return false, err
+	}
+
+	// Cache result (positive longer, negative shorter)
+	if valkeyClient := cache.Client; valkeyClient != nil {
+		cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+		ttl := netExistsCacheTTL
+		if !exists {
+			ttl = negativeCacheTTL
+		}
+		val := "0"
+		if exists {
+			val = "1"
+		}
+		_ = valkeyClient.SetString(cacheCtx, cacheKey, val, jitterTTL(ttl, cacheJitterPct))
+		cancel()
+	}
+
+	return exists, nil
+}
+
+// getNetworkVLANWithCache gets network VLAN, using Valkey cache
+func (s *JobService) getNetworkVLANWithCache(ctx context.Context, fabricName, networkName string) (string, error) {
+	cacheKey := cacheKeyPrefix + fabricName + ":network_vlan:" + networkName
+
+	// Try cache first
+	if valkeyClient := cache.Client; valkeyClient != nil {
+		cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+		cached, err := valkeyClient.GetString(cacheCtx, cacheKey)
+		cancel()
+		if err == nil && cached != "" {
+			logger.Debug("Using cached network VLAN", zap.String("network", networkName), zap.String("vlan", cached))
+			return cached, nil
+		}
+	}
+
+	// Fetch from NDFC
+	vlan, err := s.ndClient.LANFabric().GetNetworkVLAN(ctx, fabricName, networkName)
+	if err != nil {
+		return "", err
+	}
+
+	// Cache result
+	if valkeyClient := cache.Client; valkeyClient != nil {
+		cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+		_ = valkeyClient.SetString(cacheCtx, cacheKey, vlan, jitterTTL(netVLANCacheTTL, cacheJitterPct))
+		cancel()
+	}
+
+	return vlan, nil
 }
 
 // configureInterfaces configures interfaces with int_access_host policy and attaches to network
@@ -438,8 +631,14 @@ func (s *JobService) configureInterfaces(ctx context.Context, portInfos []portIn
 	// Dedupe ports by (serialNumber, interfaceName) to avoid duplicate NDFC calls
 	portInfos = dedupePortInfos(portInfos)
 
-	// Query the network's VLAN from NDFC - fail if not found
-	accessVlan, err := s.ndClient.LANFabric().GetNetworkVLAN(ctx, fabricName, networkName)
+	// Normalize interface names (trim whitespace)
+	// Interface names must already be in full NDFC format: Ethernetx/x or Ethernetx/x/x
+	for i := range portInfos {
+		portInfos[i].interfaceName = lanfabric.NormalizeInterfaceName(portInfos[i].interfaceName)
+	}
+
+	// Query the network's VLAN (cached in Valkey)
+	accessVlan, err := s.getNetworkVLANWithCache(ctx, fabricName, networkName)
 	if err != nil {
 		return fmt.Errorf("failed to get VLAN for network %s: %w", networkName, err)
 	}
@@ -470,8 +669,14 @@ func (s *JobService) configureInterfaces(ctx context.Context, portInfos []portIn
 		}
 	}
 
-	// 2. Deploy interface configurations per switch
+	// 2. Deploy interface configurations per switch (throttled to prevent hammering NDFC)
 	for serialNumber, ifNames := range interfacesBySwitch {
+		if !s.shouldDeploySwitch(ctx, fabricName, serialNumber) {
+			logger.Debug("Skipping interface deploy (throttled)",
+				zap.String("switch", serialNumber),
+				zap.Strings("interfaces", ifNames))
+			continue
+		}
 		if err := s.ndClient.LANFabric().DeployInterfacesNDFC(ctx, serialNumber, ifNames); err != nil {
 			logger.Warn("Failed to deploy interfaces",
 				zap.String("switch", serialNumber),
@@ -485,7 +690,7 @@ func (s *JobService) configureInterfaces(ctx context.Context, portInfos []portIn
 	for _, pi := range portInfos {
 		attachments = append(attachments, lanfabric.NetworkAttachment{
 			Deployment:   true,
-			Dot1QVlan:    1, // Required field, but NDFC uses network's VLAN
+			Vlan:         1, // Required field, but NDFC uses network's VLAN
 			Fabric:       fabricName,
 			NetworkName:  networkName,
 			SerialNumber: pi.serialNumber,
@@ -587,8 +792,25 @@ func (s *JobService) createSharedAssociations(ctx context.Context, fabricName, v
 }
 
 // getSharedGroupIDs returns cached shared group IDs, refreshing if needed
-// Returns a COPY of the cache to prevent data races from callers mutating it
+// Uses Valkey for cross-instance caching with local fallback
 func (s *JobService) getSharedGroupIDs(ctx context.Context, fabricName string) map[string]int {
+	cacheKey := cacheKeyPrefix + fabricName + ":shared_groups"
+
+	// 1. Try Valkey first (shared across all instances)
+	if valkeyClient := cache.Client; valkeyClient != nil {
+		cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+		cached, err := valkeyClient.GetString(cacheCtx, cacheKey)
+		cancel()
+		if err == nil && cached != "" {
+			var result map[string]int
+			if json.Unmarshal([]byte(cached), &result) == nil && len(result) > 0 {
+				logger.Debug("Using Valkey cached shared groups", zap.String("fabric", fabricName), zap.Int("count", len(result)))
+				return result
+			}
+		}
+	}
+
+	// 2. Try local cache as fallback
 	s.sharedGroupCacheMu.RLock()
 	if time.Since(s.sharedGroupCacheTime) < s.sharedGroupCacheTTL && len(s.sharedGroupCache) > 0 {
 		out := copyStringIntMap(s.sharedGroupCache)
@@ -597,19 +819,67 @@ func (s *JobService) getSharedGroupIDs(ctx context.Context, fabricName string) m
 	}
 	s.sharedGroupCacheMu.RUnlock()
 
-	// Refresh cache
-	s.sharedGroupCacheMu.Lock()
-	defer s.sharedGroupCacheMu.Unlock()
+	// 3. Refresh from NDFC with distributed lock to prevent thundering herd
+	return s.refreshSharedGroupIDs(ctx, fabricName, cacheKey)
+}
 
-	// Double-check after acquiring write lock
-	if time.Since(s.sharedGroupCacheTime) < s.sharedGroupCacheTTL && len(s.sharedGroupCache) > 0 {
-		return copyStringIntMap(s.sharedGroupCache)
+// refreshSharedGroupIDs fetches shared groups from NDFC and updates caches
+func (s *JobService) refreshSharedGroupIDs(ctx context.Context, fabricName, cacheKey string) map[string]int {
+	lockKey := cacheKey + ":lock"
+	valkeyClient := cache.Client
+
+	// Try to acquire refresh lock (only one instance refreshes at a time)
+	var release func() error
+	if valkeyClient != nil {
+		lockCtx, lockCancel := context.WithTimeout(ctx, cacheOpTimeout)
+		var err error
+		release, err = valkeyClient.AcquireLock(lockCtx, lockKey, "refresh", refreshLockTTL)
+		lockCancel()
+		if err != nil {
+			// Check if it's a real error vs just lock contention
+			if errors.Is(err, cache.ErrLockNotAcquired) {
+				// Another instance is refreshing - return stale local cache
+				s.sharedGroupCacheMu.RLock()
+				out := copyStringIntMap(s.sharedGroupCache)
+				s.sharedGroupCacheMu.RUnlock()
+				if len(out) > 0 {
+					logger.Debug("Using stale local cache while another instance refreshes", zap.String("fabric", fabricName))
+					return out
+				}
+				// No local cache - wait briefly and retry Valkey
+				time.Sleep(100 * time.Millisecond)
+				cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+				cached, cacheErr := valkeyClient.GetString(cacheCtx, cacheKey)
+				cancel()
+				if cacheErr == nil && cached != "" {
+					var result map[string]int
+					if json.Unmarshal([]byte(cached), &result) == nil {
+						return result
+					}
+				}
+			}
+			// Real Valkey error - skip Valkey retry, just return local cache or proceed to NDFC
+			s.sharedGroupCacheMu.RLock()
+			out := copyStringIntMap(s.sharedGroupCache)
+			s.sharedGroupCacheMu.RUnlock()
+			if len(out) > 0 {
+				return out
+			}
+			// No local cache - fall through to NDFC fetch
+		}
+	}
+	if release != nil {
+		defer func() { _ = release() }()
 	}
 
+	// Fetch from NDFC
 	allGroups, err := s.ndClient.GetSecurityGroups(ctx, fabricName)
 	if err != nil {
 		logger.Warn("Failed to refresh shared group cache", zap.Error(err))
-		return copyStringIntMap(s.sharedGroupCache) // Return copy of stale cache
+		s.sharedGroupCacheMu.RLock()
+		out := copyStringIntMap(s.sharedGroupCache)
+		s.sharedGroupCacheMu.RUnlock()
+		return out
 	}
 
 	newCache := make(map[string]int)
@@ -619,8 +889,21 @@ func (s *JobService) getSharedGroupIDs(ctx context.Context, fabricName string) m
 		}
 	}
 
+	// Update local cache
+	s.sharedGroupCacheMu.Lock()
 	s.sharedGroupCache = newCache
 	s.sharedGroupCacheTime = time.Now()
+	s.sharedGroupCacheMu.Unlock()
+
+	// Update Valkey cache
+	if valkeyClient != nil {
+		if data, err := json.Marshal(newCache); err == nil {
+			cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+			_ = valkeyClient.SetString(cacheCtx, cacheKey, string(data), jitterTTL(sharedGroupsCacheTTL, cacheJitterPct))
+			cancel()
+		}
+	}
+
 	return copyStringIntMap(newCache)
 }
 
@@ -631,6 +914,40 @@ func copyStringIntMap(m map[string]int) map[string]int {
 		out[k] = v
 	}
 	return out
+}
+
+// jitterTTL adds random jitter to a TTL to prevent synchronized cache expiry storms
+// jitterPct is the percentage of jitter (e.g., 0.15 = ±15%)
+func jitterTTL(ttl time.Duration, jitterPct float64) time.Duration {
+	if jitterPct <= 0 {
+		return ttl
+	}
+	// Random value in range [-jitterPct, +jitterPct]
+	jitter := (rand.Float64()*2 - 1) * jitterPct
+	return time.Duration(float64(ttl) * (1 + jitter))
+}
+
+// shouldDeploySwitch checks if we should deploy to a switch (throttle using Valkey)
+// Returns true if deploy should proceed, false if recently deployed
+func (s *JobService) shouldDeploySwitch(ctx context.Context, fabricName, serialNumber string) bool {
+	valkeyClient := cache.Client
+	if valkeyClient == nil {
+		return true // No Valkey = always deploy
+	}
+
+	cooldownKey := cacheKeyPrefix + fabricName + ":ifdeploy:" + serialNumber + ":cooldown"
+
+	// Try to set cooldown key (SETNX style)
+	cacheCtx, cancel := context.WithTimeout(ctx, cacheOpTimeout)
+	acquired, err := valkeyClient.SetNX(cacheCtx, cooldownKey, "1", switchDeployCooldown)
+	cancel()
+
+	if err != nil {
+		// Valkey error - allow deploy to be safe
+		return true
+	}
+
+	return acquired // true = we set it (deploy), false = already set (skip)
 }
 
 // Deprovision cleans up NDFC resources for a job

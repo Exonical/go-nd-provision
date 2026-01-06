@@ -8,9 +8,11 @@ import (
 	"github.com/banglin/go-nd/internal/database"
 	"github.com/banglin/go-nd/internal/models"
 	"github.com/banglin/go-nd/internal/ndclient"
+	"github.com/banglin/go-nd/internal/ndclient/lanfabric"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type SecurityHandler struct {
@@ -35,7 +37,8 @@ type CreateSecurityGroupInput struct {
 }
 
 type IPSelectorInput struct {
-	Type      string `json:"type"`
+	Type      string `json:"type"` // "Connected Endpoints" or "External Subnets"
+	IP        string `json:"ip"`   // IP address or subnet
 	VRFName   string `json:"vrf_name"`
 	CreatedBy string `json:"created_by,omitempty"`
 }
@@ -63,6 +66,7 @@ func (h *SecurityHandler) CreateSecurityGroup(c *gin.Context) {
 	for _, sel := range input.IPSelectors {
 		ipSelectors = append(ipSelectors, ndclient.IPSelector{
 			Type:       sel.Type,
+			IP:         sel.IP,
 			VRFName:    sel.VRFName,
 			CreatedBy:  sel.CreatedBy,
 			DeletedStr: "-",
@@ -78,13 +82,13 @@ func (h *SecurityHandler) CreateSecurityGroup(c *gin.Context) {
 		})
 	}
 
-	// Build network port selectors
+	// Build network port selectors (normalize interface names to full format)
 	var networkPortSelectors []ndclient.NetworkPortSelector
 	for _, sel := range input.NetworkPortSelectors {
 		networkPortSelectors = append(networkPortSelectors, ndclient.NetworkPortSelector{
 			Network:       sel.Network,
 			SwitchID:      sel.SwitchID,
-			InterfaceName: sel.InterfaceName,
+			InterfaceName: lanfabric.NormalizeInterfaceName(sel.InterfaceName),
 		})
 	}
 
@@ -105,7 +109,7 @@ func (h *SecurityHandler) CreateSecurityGroup(c *gin.Context) {
 		return
 	}
 
-	// Save to local database
+	// Upsert to local database (idempotent: handles retries gracefully)
 	group := models.SecurityGroup{
 		ID:         uuid.New().String(),
 		Name:       input.GroupName,
@@ -113,7 +117,16 @@ func (h *SecurityHandler) CreateSecurityGroup(c *gin.Context) {
 		FabricName: input.FabricName,
 	}
 
-	if err := h.db.Create(&group).Error; err != nil {
+	if err := h.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "fabric_name"}, {Name: "name"}},
+		DoUpdates: clause.AssignmentColumns([]string{"nd_object_id", "updated_at"}),
+	}).Create(&group).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Fetch the actual record to get the ID (may be existing or newly created)
+	if err := h.db.Where("fabric_name = ? AND name = ?", input.FabricName, input.GroupName).First(&group).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -7,9 +7,12 @@ type FabricResponse struct {
 
 // FabricData represents a fabric from NDFC
 type FabricData struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
+	ID         int    `json:"id"`
+	FabricName string `json:"fabricName"`
+	FabricType string `json:"fabricType"`
+	// Computed fields for compatibility
+	Name string `json:"-"`
+	Type string `json:"-"`
 }
 
 // SwitchData represents a switch from the NDFC inventory endpoint
@@ -112,10 +115,11 @@ type NetworkAttachRequest struct {
 
 // NetworkAttachment represents a single port attachment to a network
 // All fields are required by NDFC API - empty strings must be sent, not omitted
+// Per NDFC OpenAPI spec, the VLAN field is "vlan" (not "dot1QVlan")
 type NetworkAttachment struct {
 	Deployment        bool    `json:"deployment"`
 	DetachSwitchPorts string  `json:"detachSwitchPorts"`
-	Dot1QVlan         int     `json:"dot1QVlan"`
+	Vlan              int     `json:"vlan"`
 	ExtensionValues   string  `json:"extensionValues"`
 	Fabric            string  `json:"fabric"`
 	FreeformConfig    string  `json:"freeformConfig"`

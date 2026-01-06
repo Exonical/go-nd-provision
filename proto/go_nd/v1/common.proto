@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package go_nd.v1;
+
+option go_package = "github.com/banglin/go-nd/gen/go_nd/v1;v1";
+
+import "google/protobuf/timestamp.proto";
+
+// Empty message for requests/responses with no data
+message Empty {}
+
+// Pagination request parameters
+message PaginationRequest {
+  int32 page_size = 1;  // Max items per page (default: 50)
+  string page_token = 2; // Token from previous response for next page
+}
+
+// Pagination response metadata
+message PaginationResponse {
+  string next_page_token = 1; // Token for next page, empty if no more pages
+  int32 total_count = 2;      // Total number of items (if available)
+}

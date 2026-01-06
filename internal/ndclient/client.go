@@ -135,7 +135,7 @@ func NewClient(cfg *config.NexusDashboardConfig) (*Client, error) {
 		httpClient: &http.Client{
 			Transport: transport,
 			Jar:       jar,
-			Timeout:   30 * time.Second,
+			Timeout:   120 * time.Second, // ConfigDeploy can take a long time
 		},
 		endpoints: DefaultEndpoints(),
 	}

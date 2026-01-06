@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+package go_nd.v1;
+
+option go_package = "github.com/banglin/go-nd/gen/go_nd/v1;v1";
+
+import "google/protobuf/timestamp.proto";
+import "go_nd/v1/common.proto";
+
+// ComputeNodesService manages compute nodes and their port mappings
+service ComputeNodesService {
+  // ListComputeNodes lists all compute nodes
+  rpc ListComputeNodes(ListComputeNodesRequest) returns (ListComputeNodesResponse);
+
+  // GetComputeNode retrieves a compute node by ID
+  rpc GetComputeNode(GetComputeNodeRequest) returns (GetComputeNodeResponse);
+
+  // CreateComputeNode creates a new compute node
+  rpc CreateComputeNode(CreateComputeNodeRequest) returns (CreateComputeNodeResponse);
+
+  // UpdateComputeNode updates an existing compute node
+  rpc UpdateComputeNode(UpdateComputeNodeRequest) returns (UpdateComputeNodeResponse);
+
+  // DeleteComputeNode deletes a compute node
+  rpc DeleteComputeNode(DeleteComputeNodeRequest) returns (DeleteComputeNodeResponse);
+
+  // ListPortMappings lists port mappings for a compute node
+  rpc ListPortMappings(ListPortMappingsRequest) returns (ListPortMappingsResponse);
+
+  // AddPortMapping adds a port mapping to a compute node
+  rpc AddPortMapping(AddPortMappingRequest) returns (AddPortMappingResponse);
+
+  // DeletePortMapping removes a port mapping from a compute node
+  rpc DeletePortMapping(DeletePortMappingRequest) returns (DeletePortMappingResponse);
+}
+
+// ComputeNode represents a server/compute node
+message ComputeNode {
+  string id = 1;
+  string name = 2;
+  string hostname = 3;
+  string ip_address = 4;
+  string mac_address = 5;
+  string description = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  repeated PortMapping port_mappings = 9;
+}
+
+// PortMapping maps a compute node to a switch port
+message PortMapping {
+  string id = 1;
+  string compute_node_id = 2;
+  string switch_port_id = 3;
+  string switch_port_name = 4;  // Denormalized
+  string switch_id = 5;         // Denormalized
+  string switch_name = 6;       // Denormalized
+  string nic_name = 7;
+  int32 vlan = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+// ListComputeNodesRequest lists compute nodes
+message ListComputeNodesRequest {
+  PaginationRequest pagination = 1;
+}
+
+// ListComputeNodesResponse returns compute nodes
+message ListComputeNodesResponse {
+  repeated ComputeNode compute_nodes = 1;
+  PaginationResponse pagination = 2;
+}
+
+// GetComputeNodeRequest retrieves a compute node
+message GetComputeNodeRequest {
+  string id = 1;
+}
+
+// GetComputeNodeResponse returns a compute node
+message GetComputeNodeResponse {
+  ComputeNode compute_node = 1;
+}
+
+// CreateComputeNodeRequest creates a compute node
+message CreateComputeNodeRequest {
+  string name = 1;
+  string hostname = 2;
+  string ip_address = 3;
+  string mac_address = 4;
+  string description = 5;
+}
+
+// CreateComputeNodeResponse returns the created compute node
+message CreateComputeNodeResponse {
+  ComputeNode compute_node = 1;
+}
+
+// UpdateComputeNodeRequest updates a compute node
+message UpdateComputeNodeRequest {
+  string id = 1;
+  string name = 2;
+  string hostname = 3;
+  string ip_address = 4;
+  string mac_address = 5;
+  string description = 6;
+}
+
+// UpdateComputeNodeResponse returns the updated compute node
+message UpdateComputeNodeResponse {
+  ComputeNode compute_node = 1;
+}
+
+// DeleteComputeNodeRequest deletes a compute node
+message DeleteComputeNodeRequest {
+  string id = 1;
+}
+
+// DeleteComputeNodeResponse confirms deletion
+message DeleteComputeNodeResponse {}
+
+// ListPortMappingsRequest lists port mappings for a compute node
+message ListPortMappingsRequest {
+  string compute_node_id = 1;
+}
+
+// ListPortMappingsResponse returns port mappings
+message ListPortMappingsResponse {
+  repeated PortMapping port_mappings = 1;
+}
+
+// AddPortMappingRequest adds a port mapping
+message AddPortMappingRequest {
+  string compute_node_id = 1;
+  string switch_port_id = 2;
+  string nic_name = 3;
+  int32 vlan = 4;
+}
+
+// AddPortMappingResponse returns the created port mapping
+message AddPortMappingResponse {
+  PortMapping port_mapping = 1;
+}
+
+// DeletePortMappingRequest removes a port mapping
+message DeletePortMappingRequest {
+  string id = 1;
+}
+
+// DeletePortMappingResponse confirms deletion
+message DeletePortMappingResponse {}

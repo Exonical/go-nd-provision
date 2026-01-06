@@ -14,8 +14,15 @@ type SecurityGroup struct {
 	VMInstanceUUIDSelectors []VMInstanceUUIDSelector `json:"vmInstanceUUIDSelectors,omitempty"`
 }
 
+// IPSelector type constants per NDFC API spec
+const (
+	IPSelectorTypeConnectedEndpoints = "Connected Endpoints"
+	IPSelectorTypeExternalSubnets    = "External Subnets"
+)
+
 type IPSelector struct {
-	Type       string `json:"type"`
+	Type       string `json:"type"`         // "Connected Endpoints" or "External Subnets"
+	IP         string `json:"ip,omitempty"` // IP address or subnet (e.g., "10.101.0.50" or "20.101.10.0/24")
 	VRFName    string `json:"vrfName"`
 	CreatedBy  string `json:"createdBy,omitempty"`
 	DeletedStr string `json:"deletedStr,omitempty"`
@@ -29,7 +36,7 @@ type NetworkSelector struct {
 type NetworkPortSelector struct {
 	Network       string `json:"network"`
 	SwitchID      string `json:"switchId"`
-	InterfaceName string `json:"interfaceName"`
+	InterfaceName string `json:"interfaceName"` // Must be full format (e.g., "Ethernet1/5", not "Eth1/5")
 }
 
 type VMInstanceUUIDSelector struct {

@@ -1,0 +1,263 @@
+syntax = "proto3";
+
+package go_nd.v1;
+
+option go_package = "github.com/banglin/go-nd/gen/go_nd/v1;v1";
+
+import "google/protobuf/timestamp.proto";
+import "go_nd/v1/common.proto";
+
+// FabricsService manages fabrics, switches, and ports
+service FabricsService {
+  // ListFabrics lists all fabrics
+  rpc ListFabrics(ListFabricsRequest) returns (ListFabricsResponse);
+
+  // GetFabric retrieves a fabric by ID
+  rpc GetFabric(GetFabricRequest) returns (GetFabricResponse);
+
+  // CreateFabric creates a new fabric
+  rpc CreateFabric(CreateFabricRequest) returns (CreateFabricResponse);
+
+  // SyncFabrics syncs fabrics from Nexus Dashboard
+  rpc SyncFabrics(SyncFabricsRequest) returns (SyncFabricsResponse);
+
+  // ListSwitches lists switches in a fabric
+  rpc ListSwitches(ListSwitchesRequest) returns (ListSwitchesResponse);
+
+  // GetSwitch retrieves a switch by ID
+  rpc GetSwitch(GetSwitchRequest) returns (GetSwitchResponse);
+
+  // CreateSwitch creates a new switch
+  rpc CreateSwitch(CreateSwitchRequest) returns (CreateSwitchResponse);
+
+  // SyncSwitches syncs switches from Nexus Dashboard
+  rpc SyncSwitches(SyncSwitchesRequest) returns (SyncSwitchesResponse);
+
+  // ListNetworks lists networks in a fabric
+  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
+
+  // ListPorts lists ports on a switch
+  rpc ListPorts(ListPortsRequest) returns (ListPortsResponse);
+
+  // GetPort retrieves a port by ID
+  rpc GetPort(GetPortRequest) returns (GetPortResponse);
+
+  // CreatePort creates a new port
+  rpc CreatePort(CreatePortRequest) returns (CreatePortResponse);
+
+  // SyncPorts syncs ports from Nexus Dashboard
+  rpc SyncPorts(SyncPortsRequest) returns (SyncPortsResponse);
+
+  // DeletePorts deletes ports from a switch
+  rpc DeletePorts(DeletePortsRequest) returns (DeletePortsResponse);
+}
+
+// Fabric represents a Nexus Dashboard fabric
+message Fabric {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+  int32 switch_count = 6;  // Denormalized count
+}
+
+// Switch represents a network switch
+message Switch {
+  string id = 1;
+  string name = 2;
+  string serial_number = 3;
+  string model = 4;
+  string ip_address = 5;
+  string fabric_id = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  int32 port_count = 9;  // Denormalized count
+}
+
+// SwitchPort represents a port on a switch
+message SwitchPort {
+  string id = 1;
+  string name = 2;
+  string port_number = 3;
+  string description = 4;
+  string admin_state = 5;
+  string speed = 6;
+  bool is_present = 7;
+  string switch_id = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  google.protobuf.Timestamp last_seen_at = 11;
+}
+
+// Network represents a network in a fabric
+message Network {
+  string name = 1;
+  string fabric = 2;
+  string vrf = 3;
+  int32 vlan_id = 4;
+}
+
+// ListFabricsRequest lists fabrics
+message ListFabricsRequest {
+  PaginationRequest pagination = 1;
+}
+
+// ListFabricsResponse returns fabrics
+message ListFabricsResponse {
+  repeated Fabric fabrics = 1;
+  PaginationResponse pagination = 2;
+}
+
+// GetFabricRequest retrieves a fabric
+message GetFabricRequest {
+  string id = 1;
+}
+
+// GetFabricResponse returns a fabric
+message GetFabricResponse {
+  Fabric fabric = 1;
+}
+
+// CreateFabricRequest creates a fabric
+message CreateFabricRequest {
+  string name = 1;
+  string type = 2;
+}
+
+// CreateFabricResponse returns the created fabric
+message CreateFabricResponse {
+  Fabric fabric = 1;
+}
+
+// SyncFabricsRequest syncs fabrics from ND
+message SyncFabricsRequest {}
+
+// SyncFabricsResponse returns sync results
+message SyncFabricsResponse {
+  int32 synced_count = 1;
+  repeated Fabric fabrics = 2;
+}
+
+// ListSwitchesRequest lists switches in a fabric
+message ListSwitchesRequest {
+  string fabric_id = 1;
+  PaginationRequest pagination = 2;
+}
+
+// ListSwitchesResponse returns switches
+message ListSwitchesResponse {
+  repeated Switch switches = 1;
+  PaginationResponse pagination = 2;
+}
+
+// GetSwitchRequest retrieves a switch
+message GetSwitchRequest {
+  string fabric_id = 1;
+  string switch_id = 2;
+}
+
+// GetSwitchResponse returns a switch
+message GetSwitchResponse {
+  Switch switch = 1;
+}
+
+// CreateSwitchRequest creates a switch
+message CreateSwitchRequest {
+  string fabric_id = 1;
+  string name = 2;
+  string serial_number = 3;
+  string model = 4;
+  string ip_address = 5;
+}
+
+// CreateSwitchResponse returns the created switch
+message CreateSwitchResponse {
+  Switch switch = 1;
+}
+
+// SyncSwitchesRequest syncs switches from ND
+message SyncSwitchesRequest {
+  string fabric_id = 1;
+}
+
+// SyncSwitchesResponse returns sync results
+message SyncSwitchesResponse {
+  int32 synced_count = 1;
+  repeated Switch switches = 2;
+}
+
+// ListNetworksRequest lists networks in a fabric
+message ListNetworksRequest {
+  string fabric_id = 1;
+  PaginationRequest pagination = 2;
+}
+
+// ListNetworksResponse returns networks
+message ListNetworksResponse {
+  repeated Network networks = 1;
+  PaginationResponse pagination = 2;
+}
+
+// ListPortsRequest lists ports on a switch
+message ListPortsRequest {
+  string fabric_id = 1;
+  string switch_id = 2;
+  PaginationRequest pagination = 3;
+}
+
+// ListPortsResponse returns ports
+message ListPortsResponse {
+  repeated SwitchPort ports = 1;
+  PaginationResponse pagination = 2;
+}
+
+// GetPortRequest retrieves a port
+message GetPortRequest {
+  string fabric_id = 1;
+  string switch_id = 2;
+  string port_id = 3;
+}
+
+// GetPortResponse returns a port
+message GetPortResponse {
+  SwitchPort port = 1;
+}
+
+// CreatePortRequest creates a port
+message CreatePortRequest {
+  string fabric_id = 1;
+  string switch_id = 2;
+  string name = 3;
+  string port_number = 4;
+  string description = 5;
+}
+
+// CreatePortResponse returns the created port
+message CreatePortResponse {
+  SwitchPort port = 1;
+}
+
+// SyncPortsRequest syncs ports from ND
+message SyncPortsRequest {
+  string fabric_id = 1;
+  string switch_id = 2;
+}
+
+// SyncPortsResponse returns sync results
+message SyncPortsResponse {
+  int32 synced_count = 1;
+  repeated SwitchPort ports = 2;
+}
+
+// DeletePortsRequest deletes ports
+message DeletePortsRequest {
+  string fabric_id = 1;
+  string switch_id = 2;
+  repeated string port_ids = 3;  // If empty, deletes all ports on switch
+}
+
+// DeletePortsResponse confirms deletion
+message DeletePortsResponse {
+  int32 deleted_count = 1;
+}

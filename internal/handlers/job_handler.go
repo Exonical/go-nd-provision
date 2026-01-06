@@ -28,7 +28,6 @@ type SubmitJobInput struct {
 	SlurmJobID   string   `json:"slurm_job_id" binding:"required"`
 	Name         string   `json:"name"`
 	ComputeNodes []string `json:"compute_nodes" binding:"required"`
-	DurationDays int      `json:"duration_days"`
 }
 
 // SubmitJob handles job submission from Slurm and provisions security
@@ -43,7 +42,6 @@ func (h *JobHandler) SubmitJob(c *gin.Context) {
 		SlurmJobID:   input.SlurmJobID,
 		Name:         input.Name,
 		ComputeNodes: input.ComputeNodes,
-		DurationDays: input.DurationDays,
 	})
 
 	if err != nil {

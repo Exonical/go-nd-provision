@@ -1,0 +1,13 @@
+# buf.yaml - Buf configuration for protobuf management
+version: v2
+modules:
+  - path: proto
+    name: buf.build/banglin/go-nd
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
+breaking:
+  use:
+    - FILE

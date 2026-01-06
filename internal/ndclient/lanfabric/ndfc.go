@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -32,16 +33,17 @@ func NewService(client ClientInterface) *Service {
 
 // GetFabricsNDFC retrieves all fabrics from legacy NDFC API
 func (s *Service) GetFabricsNDFC(ctx context.Context) ([]FabricData, error) {
-	path, err := s.client.NDFCLanFabricPath("fabrics")
+	// Path: /appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics
+	path, err := s.client.NDFCLanFabricPath("rest", "control", "fabrics")
 	if err != nil {
 		return nil, err
 	}
 
-	var response FabricResponse
-	if err := s.client.Get(ctx, path, &response); err != nil {
+	var fabrics []FabricData
+	if err := s.client.Get(ctx, path, &fabrics); err != nil {
 		return nil, fmt.Errorf("get fabrics (ndfc): %w", err)
 	}
-	return response.Fabrics, nil
+	return fabrics, nil
 }
 
 // GetFabricNDFC retrieves a single fabric by ID from legacy NDFC API
@@ -73,7 +75,7 @@ func (s *Service) FindFabricByNameNDFC(ctx context.Context, name string) (*Fabri
 		return nil, err
 	}
 	for i := range fabrics {
-		if fabrics[i].Name == name {
+		if fabrics[i].FabricName == name {
 			return &fabrics[i], nil
 		}
 	}
@@ -151,7 +153,7 @@ func (s *Service) GetSwitchPortsNDFC(ctx context.Context, serialNumber string) (
 	if err != nil {
 		return nil, err
 	}
-	path = addQuery(path, url.Values{"serialNumber": {serialNumber}})
+	path = common.AddQuery(path, url.Values{"serialNumber": {serialNumber}})
 
 	var responses []InterfaceResponse
 	if err := s.client.Get(ctx, path, &responses); err != nil {
@@ -177,18 +179,16 @@ func IsLeafOrBorder(role string) bool {
 	return strings.Contains(r, "leaf") || strings.Contains(r, "tor") || strings.Contains(r, "border")
 }
 
-// IsEthernetPort returns true if the port name is an Ethernet interface
-// Handles both "Ethernet1/1" and "Eth1/1" formats
-func IsEthernetPort(name string) bool {
-	return strings.HasPrefix(name, "Ethernet") || strings.HasPrefix(name, "Eth")
-}
+// ethernetIfRE matches valid Ethernet interface names:
+//   - Ethernetx/x (standard port, e.g., Ethernet1/1, Ethernet1/49)
+//   - Ethernetx/x/x (breakout port, e.g., Ethernet1/1/1, Ethernet1/49/4)
+var ethernetIfRE = regexp.MustCompile(`^Ethernet\d+/\d+(/\d+)?$`)
 
-// addQuery appends query parameters to a path
-func addQuery(path string, vals url.Values) string {
-	if len(vals) == 0 {
-		return path
-	}
-	return path + "?" + vals.Encode()
+// IsEthernetPort returns true if the port name is a valid Ethernet interface.
+// Only accepts full "Ethernet" prefix with slot/port pattern.
+// Short forms like "Eth1/1" are NOT valid.
+func IsEthernetPort(name string) bool {
+	return ethernetIfRE.MatchString(strings.TrimSpace(name))
 }
 
 // GetNetworksNDFC returns all networks for a fabric
@@ -207,6 +207,50 @@ func (s *Service) GetNetworksNDFC(ctx context.Context, fabricName string) ([]map
 	return networks, nil
 }
 
+// NetworkExists checks if a network exists in the fabric
+func (s *Service) NetworkExists(ctx context.Context, fabricName, networkName string) (bool, error) {
+	networks, err := s.GetNetworksNDFC(ctx, fabricName)
+	if err != nil {
+		return false, err
+	}
+	for _, n := range networks {
+		if name, ok := n["networkName"].(string); ok && name == networkName {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// GetVRFsNDFC returns all VRFs for a fabric
+func (s *Service) GetVRFsNDFC(ctx context.Context, fabricName string) ([]map[string]interface{}, error) {
+	if err := common.RequireNonEmpty("fabricName", fabricName); err != nil {
+		return nil, err
+	}
+	path, err := s.client.NDFCLanFabricPath("rest", "top-down", "fabrics", fabricName, "vrfs")
+	if err != nil {
+		return nil, err
+	}
+	var vrfs []map[string]interface{}
+	if err := s.client.Get(ctx, path, &vrfs); err != nil {
+		return nil, fmt.Errorf("get vrfs (ndfc, fabric=%s): %w", fabricName, err)
+	}
+	return vrfs, nil
+}
+
+// VRFExists checks if a VRF exists in the fabric
+func (s *Service) VRFExists(ctx context.Context, fabricName, vrfName string) (bool, error) {
+	vrfs, err := s.GetVRFsNDFC(ctx, fabricName)
+	if err != nil {
+		return false, err
+	}
+	for _, v := range vrfs {
+		if name, ok := v["vrfName"].(string); ok && name == vrfName {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // UpdateInterfacesNDFC updates interface configurations in NDFC
 // PUT /appcenter/cisco/ndfc/api/v1/lan-fabric/rest/interface
 func (s *Service) UpdateInterfacesNDFC(ctx context.Context, req *InterfaceUpdateRequest) error {
@@ -216,11 +260,7 @@ func (s *Service) UpdateInterfacesNDFC(ctx context.Context, req *InterfaceUpdate
 	}
 	var result interface{}
 	if err := s.client.Put(ctx, path, req, &result); err != nil {
-		// Try to extract body from APIError for better debugging
-		if apiErr, ok := err.(interface{ BodyString(int) string }); ok {
-			return fmt.Errorf("update interface (policy=%s): %w, body: %s", req.Policy, err, apiErr.BodyString(500))
-		}
-		return fmt.Errorf("update interface (policy=%s): %w", req.Policy, err)
+		return common.WrapAPIErrorWithContext("update interface", "policy="+req.Policy, err)
 	}
 	return nil
 }
@@ -383,10 +423,7 @@ func (s *Service) AttachPortsToNetwork(ctx context.Context, fabricName, networkN
 	// Decode into concrete type - NDFC returns map of network->status
 	var result map[string]string
 	if err := s.client.Post(ctx, path, req, &result); err != nil {
-		if apiErr, ok := err.(interface{ BodyString(int) string }); ok {
-			return fmt.Errorf("attach ports to network (fabric=%s, network=%s): %w, body: %s", fabricName, networkName, err, apiErr.BodyString(500))
-		}
-		return fmt.Errorf("attach ports to network (fabric=%s, network=%s): %w", fabricName, networkName, err)
+		return common.WrapAPIErrorWithContext("attach ports to network", fmt.Sprintf("fabric=%s, network=%s", fabricName, networkName), err)
 	}
 
 	// Check for non-SUCCESS statuses in response
@@ -429,10 +466,7 @@ func (s *Service) DetachPortsFromNetwork(ctx context.Context, fabricName, networ
 
 	var result map[string]string
 	if err := s.client.Post(ctx, path, req, &result); err != nil {
-		if apiErr, ok := err.(interface{ BodyString(int) string }); ok {
-			return fmt.Errorf("detach ports from network (fabric=%s, network=%s): %w, body: %s", fabricName, networkName, err, apiErr.BodyString(500))
-		}
-		return fmt.Errorf("detach ports from network (fabric=%s, network=%s): %w", fabricName, networkName, err)
+		return common.WrapAPIErrorWithContext("detach ports from network", fmt.Sprintf("fabric=%s, network=%s", fabricName, networkName), err)
 	}
 
 	// Check for non-SUCCESS statuses in response

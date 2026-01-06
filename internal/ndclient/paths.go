@@ -1,7 +1,5 @@
 package ndclient
 
-import "net/url"
-
 // Legacy NDFC path builders
 
 // ndfcSecurityFabricPath builds a path for the legacy NDFC security API
@@ -41,12 +39,4 @@ func (c *Client) ndPath(parts ...string) (string, error) {
 // Example: /api/v1/lan-fabric/fabrics/{fabricID}/switches
 func (c *Client) ndLanFabricPath(parts ...string) (string, error) {
 	return c.ndPath(append([]string{"lan-fabric"}, parts...)...)
-}
-
-// addQuery appends query parameters to a path
-func addQuery(path string, vals url.Values) string {
-	if len(vals) == 0 {
-		return path
-	}
-	return path + "?" + vals.Encode()
 }

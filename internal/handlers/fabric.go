@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/banglin/go-nd/internal/cache"
 	"github.com/banglin/go-nd/internal/database"
 	"github.com/banglin/go-nd/internal/models"
 	"github.com/banglin/go-nd/internal/ndclient"
-	"github.com/banglin/go-nd/internal/ndclient/lanfabric"
+	"github.com/banglin/go-nd/internal/sync"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -21,23 +22,15 @@ func NewFabricHandler(client *ndclient.Client) *FabricHandler {
 }
 
 // SyncFabrics syncs fabrics from Nexus Dashboard to local database
+// Uses the shared sync.SyncFabrics helper for consistent upsert behavior
 func (h *FabricHandler) SyncFabrics(c *gin.Context) {
-	fabrics, err := h.ndClient.LANFabric().GetFabricsNDFC(c.Request.Context())
+	result, err := sync.SyncFabrics(c.Request.Context(), database.DB, h.ndClient.LANFabric())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	for _, f := range fabrics {
-		fabric := models.Fabric{
-			ID:   f.ID,
-			Name: f.Name,
-			Type: f.Type,
-		}
-		database.DB.Save(&fabric)
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Fabrics synced", "count": len(fabrics)})
+	c.JSON(http.StatusOK, gin.H{"message": "Fabrics synced", "count": result.Synced})
 }
 
 // CreateFabric creates a fabric record manually (for testing/setup)
@@ -92,47 +85,26 @@ func (h *FabricHandler) GetFabric(c *gin.Context) {
 }
 
 // SyncSwitches syncs switches for a fabric from Nexus Dashboard
+// Uses the shared sync.SyncFabricSwitches helper for consistent upsert behavior
 func (h *FabricHandler) SyncSwitches(c *gin.Context) {
-	fabricName := c.Param("id")
+	fabricIDOrName := c.Param("id")
 
-	// Find or create fabric record
+	// Find fabric by ID first, then by name
 	var fabric models.Fabric
-	if err := database.DB.Where("name = ?", fabricName).First(&fabric).Error; err != nil {
-		// Create fabric if it doesn't exist
-		fabric = models.Fabric{
-			ID:   uuid.New().String(),
-			Name: fabricName,
-			Type: "VXLAN",
+	if err := database.DB.First(&fabric, "id = ?", fabricIDOrName).Error; err != nil {
+		if err := database.DB.Where("name = ?", fabricIDOrName).First(&fabric).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
+			return
 		}
-		database.DB.Create(&fabric)
 	}
 
-	switches, err := h.ndClient.LANFabric().GetSwitchesNDFC(c.Request.Context(), fabricName)
+	result, err := sync.SyncFabricSwitches(c.Request.Context(), database.DB, h.ndClient.LANFabric(), &fabric)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Only import ToR, Leaf, or Border switches (not spines)
-	var imported int
-	for _, s := range switches {
-		if !lanfabric.IsLeafOrBorder(s.SwitchRole) {
-			continue
-		}
-
-		sw := models.Switch{
-			ID:           fmt.Sprintf("%d", s.SwitchDbID),
-			Name:         s.LogicalName,
-			SerialNumber: s.SerialNumber,
-			Model:        s.Model,
-			IPAddress:    s.IPAddress,
-			FabricID:     fabric.ID,
-		}
-		database.DB.Save(&sw)
-		imported++
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Switches synced", "count": imported, "total": len(switches)})
+	c.JSON(http.StatusOK, gin.H{"message": "Switches synced", "count": result.Synced, "total": result.Total})
 }
 
 // CreateSwitch creates a switch record manually (for testing/setup)
@@ -195,7 +167,7 @@ func (h *FabricHandler) GetSwitch(c *gin.Context) {
 }
 
 // SyncSwitchPorts syncs ports for a switch from Nexus Dashboard
-// Uses the switch's serial number to query NDFC interface API
+// Uses the shared sync.SyncSwitchPorts helper (same as background worker)
 func (h *FabricHandler) SyncSwitchPorts(c *gin.Context) {
 	switchID := c.Param("switchId")
 
@@ -206,59 +178,34 @@ func (h *FabricHandler) SyncSwitchPorts(c *gin.Context) {
 		return
 	}
 
-	// Get uplink ports to exclude (inter-switch links)
+	// Get uplink ports to exclude (inter-switch links) - uses cache if available
 	var uplinks map[string]bool
 	if sw.Fabric != nil {
-		var err error
-		uplinks, err = h.ndClient.LANFabric().GetUplinkPortsNDFC(c.Request.Context(), sw.Fabric.Name)
-		if err != nil {
-			uplinks = make(map[string]bool)
-		}
+		uplinks = sync.GetUplinksWithCache(c.Request.Context(), h.ndClient.LANFabric(), sw.Fabric.Name, cache.Client)
 	} else {
 		uplinks = make(map[string]bool)
 	}
 
-	ports, err := h.ndClient.LANFabric().GetSwitchPortsNDFC(c.Request.Context(), sw.SerialNumber)
+	// Use shared helper for port sync
+	result, err := sync.SyncSwitchPorts(
+		c.Request.Context(),
+		database.DB,
+		h.ndClient.LANFabric(),
+		switchID,
+		sw.SerialNumber,
+		uplinks,
+	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to sync ports: %v", err)})
 		return
 	}
 
-	var imported int
-	for _, p := range ports {
-		// Only import Ethernet interfaces (e.g., Ethernet1/1 or Ethernet1/1/4)
-		if !lanfabric.IsEthernetPort(p.Name) {
-			continue
-		}
-
-		// Skip uplink ports (inter-switch links)
-		uplinkKey := sw.SerialNumber + ":" + p.Name
-		if uplinks[uplinkKey] {
-			continue
-		}
-
-		// Upsert by switch_id + name to avoid duplicates
-		var existing models.SwitchPort
-		if err := database.DB.Where("switch_id = ? AND name = ?", switchID, p.Name).First(&existing).Error; err == nil {
-			existing.Description = p.Description
-			existing.Speed = p.Speed
-			existing.Status = p.AdminState
-			database.DB.Save(&existing)
-		} else {
-			port := models.SwitchPort{
-				ID:          uuid.New().String(),
-				Name:        p.Name,
-				Description: p.Description,
-				Speed:       p.Speed,
-				Status:      p.AdminState,
-				SwitchID:    switchID,
-			}
-			database.DB.Create(&port)
-		}
-		imported++
+	if result.Synced == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "No Ethernet ports found", "count": 0, "total": result.Total})
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Ports synced", "count": imported, "total": len(ports)})
+	c.JSON(http.StatusOK, gin.H{"message": "Ports synced", "count": result.Synced, "total": result.Total})
 }
 
 // DeleteSwitchPorts deletes all ports for a switch (for cleanup/re-sync)
@@ -302,7 +249,7 @@ func (h *FabricHandler) CreateSwitchPort(c *gin.Context) {
 		Name        string `json:"name" binding:"required"`
 		PortNumber  string `json:"port_number"`
 		Description string `json:"description"`
-		Status      string `json:"status"`
+		AdminState  string `json:"admin_state"`
 		Speed       string `json:"speed"`
 	}
 
@@ -316,7 +263,8 @@ func (h *FabricHandler) CreateSwitchPort(c *gin.Context) {
 		Name:        input.Name,
 		PortNumber:  input.PortNumber,
 		Description: input.Description,
-		Status:      input.Status,
+		AdminState:  input.AdminState,
+		IsPresent:   true,
 		Speed:       input.Speed,
 		SwitchID:    switchID,
 	}
