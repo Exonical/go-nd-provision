@@ -70,6 +70,9 @@ func (w *Worker) Start() {
 		return
 	}
 
+	// Clean up any stale locks from previous crashed instances
+	w.cleanupStaleLocks()
+
 	logger.Info("Starting NDFC sync worker",
 		zap.Duration("interval", w.interval),
 		zap.String("fabric", w.fabricName),
@@ -105,17 +108,107 @@ func (w *Worker) Stop() {
 
 // Sync lock and cache key formats and TTLs
 const (
-	syncKeyPrefix    = "sync:ndfc:"
-	syncLockTTL      = 30 * time.Minute // Must exceed ctx timeout (15m) + buffer
-	uplinksCacheTTL  = 30 * time.Minute
-	statusTTL        = 24 * time.Hour
-	cooldownDuration = 5 * time.Minute
-	cacheOpTimeout   = 2 * time.Second
+	syncKeyPrefix      = "sync:ndfc:"
+	syncLockTTL        = 1 * time.Minute  // Short TTL, extended periodically during sync
+	lockExtendInterval = 30 * time.Second // Extend lock every 30s during sync
+	staleLockThreshold = 2 * time.Minute  // Force-release locks older than this on startup
+	uplinksCacheTTL    = 30 * time.Minute
+	statusTTL          = 24 * time.Hour
+	cooldownDuration   = 5 * time.Minute
+	cacheOpTimeout     = 2 * time.Second
 )
 
 // syncKeyFor builds a Valkey key for the given fabric and suffix
 func (w *Worker) syncKeyFor(suffix string) string {
 	return syncKeyPrefix + w.fabricName + ":" + suffix
+}
+
+// extendLockPeriodically extends the lock TTL periodically during long sync operations
+func (w *Worker) extendLockPeriodically(lockKey, lockInfoKey string, stop chan struct{}) {
+	ticker := time.NewTicker(lockExtendInterval)
+	defer ticker.Stop()
+
+	valkeyClient := cache.Client
+	if valkeyClient == nil {
+		return
+	}
+
+	for {
+		select {
+		case <-stop:
+			return
+		case <-w.ctx.Done():
+			return
+		case <-ticker.C:
+			ctx, cancel := context.WithTimeout(w.ctx, cacheOpTimeout)
+			err := valkeyClient.ExtendLock(ctx, lockKey, syncLockTTL)
+			if err != nil {
+				logger.Warn("Failed to extend sync lock",
+					zap.String("fabric", w.fabricName),
+					zap.Error(err))
+			} else {
+				// Also update lock info timestamp
+				lockInfo := fmt.Sprintf("%s:%d", w.instanceID, time.Now().Unix())
+				_ = valkeyClient.SetString(ctx, lockInfoKey, lockInfo, syncLockTTL+time.Minute)
+			}
+			cancel()
+		}
+	}
+}
+
+// cleanupStaleLocks removes stale locks from crashed instances on startup
+func (w *Worker) cleanupStaleLocks() {
+	valkeyClient := cache.Client
+	if valkeyClient == nil {
+		return
+	}
+
+	lockKey := w.syncKeyFor("lock")
+	lockInfoKey := w.syncKeyFor("lock_info")
+
+	ctx, cancel := context.WithTimeout(w.ctx, cacheOpTimeout)
+	defer cancel()
+
+	// Check if lock exists and get its info
+	lockInfo, err := valkeyClient.GetString(ctx, lockInfoKey)
+	if err != nil {
+		// No lock info means no lock or already cleaned up
+		return
+	}
+
+	// Parse lock info (format: "instanceID:timestamp")
+	var lockTS int64
+	if _, err := fmt.Sscanf(lockInfo, "%*[^:]:%d", &lockTS); err == nil {
+		lockAge := time.Since(time.Unix(lockTS, 0))
+		if lockAge > staleLockThreshold {
+			// Lock is stale, force release it
+			logger.Warn("Force-releasing stale sync lock",
+				zap.String("fabric", w.fabricName),
+				zap.Duration("lock_age", lockAge),
+				zap.String("lock_info", lockInfo),
+			)
+			_ = valkeyClient.Delete(ctx, lockKey)
+			_ = valkeyClient.Delete(ctx, lockInfoKey)
+		}
+	}
+
+	// Also check in_progress flag for stale state
+	inProgressKey := w.syncKeyFor("in_progress")
+	inProgressVal, err := valkeyClient.GetString(ctx, inProgressKey)
+	if err == nil && inProgressVal != "0" {
+		// Parse format: "instanceID:timestamp"
+		var inProgressTS int64
+		if _, err := fmt.Sscanf(inProgressVal, "%*[^:]:%d", &inProgressTS); err == nil {
+			inProgressAge := time.Since(time.Unix(inProgressTS, 0))
+			if inProgressAge > staleLockThreshold {
+				logger.Warn("Clearing stale in_progress flag",
+					zap.String("fabric", w.fabricName),
+					zap.Duration("age", inProgressAge),
+				)
+				_ = valkeyClient.SetString(ctx, inProgressKey, "0", 10*time.Minute)
+			}
+		}
+	}
 }
 
 func (w *Worker) syncAll() {
@@ -141,8 +234,10 @@ func (w *Worker) syncAll() {
 	// Distributed lock to prevent multiple instances from syncing simultaneously
 	// Use bounded context for lock acquisition to avoid hangs
 	lockKey := w.syncKeyFor("lock")
+	lockInfoKey := w.syncKeyFor("lock_info")
 	valkeyClient := cache.Client
 	var release func() error
+	var stopLockExtender chan struct{}
 	if valkeyClient != nil {
 		lockCtx, lockCancel := context.WithTimeout(w.ctx, cacheOpTimeout)
 		var err error
@@ -162,6 +257,16 @@ func (w *Worker) syncAll() {
 				zap.Error(err))
 			return
 		}
+
+		// Store lock info for stale lock detection (instanceID:timestamp)
+		lockInfo := fmt.Sprintf("%s:%d", w.instanceID, time.Now().Unix())
+		infoCtx, infoCancel := context.WithTimeout(w.ctx, cacheOpTimeout)
+		_ = valkeyClient.SetString(infoCtx, lockInfoKey, lockInfo, syncLockTTL+time.Minute)
+		infoCancel()
+
+		// Start lock extender goroutine to keep lock alive during long syncs
+		stopLockExtender = make(chan struct{})
+		go w.extendLockPeriodically(lockKey, lockInfoKey, stopLockExtender)
 	}
 
 	// Use parent context with timeout (15m for large fabrics with many switches)
@@ -180,8 +285,18 @@ func (w *Worker) syncAll() {
 		w.setInProgress(false)
 		w.updateSyncStatus(time.Since(start), portErrors, syncErr)
 		w.setFinishStatus(syncErr)
+		// Stop lock extender first
+		if stopLockExtender != nil {
+			close(stopLockExtender)
+		}
+		// Release lock and clean up lock info
 		if release != nil {
 			_ = release()
+		}
+		if valkeyClient != nil {
+			cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), cacheOpTimeout)
+			_ = valkeyClient.Delete(cleanupCtx, lockInfoKey)
+			cleanupCancel()
 		}
 	}()
 

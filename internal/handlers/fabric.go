@@ -146,9 +146,19 @@ func (h *FabricHandler) CreateSwitch(c *gin.Context) {
 
 // GetSwitches returns all switches for a fabric
 func (h *FabricHandler) GetSwitches(c *gin.Context) {
-	fabricID := c.Param("id")
+	fabricIDOrName := c.Param("id")
+
+	// Find fabric by ID first, then by name (consistent with SyncSwitches)
+	var fabric models.Fabric
+	if err := database.DB.First(&fabric, "id = ?", fabricIDOrName).Error; err != nil {
+		if err := database.DB.Where("name = ?", fabricIDOrName).First(&fabric).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
+			return
+		}
+	}
+
 	var switches []models.Switch
-	if err := database.DB.Where("fabric_id = ?", fabricID).Find(&switches).Error; err != nil {
+	if err := database.DB.Where("fabric_id = ?", fabric.ID).Find(&switches).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
