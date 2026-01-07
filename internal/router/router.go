@@ -43,6 +43,7 @@ func Setup(ndClient *ndclient.Client, cfg *config.Config) *gin.Engine {
 			fabrics.GET("/:id/networks", fabricHandler.GetNetworks)
 
 			// Switch port routes
+			fabrics.POST("/:id/ports/sync", fabricHandler.SyncAllPorts) // Sync all ports in fabric
 			fabrics.GET("/:id/switches/:switchId/ports", fabricHandler.GetSwitchPorts)
 			fabrics.GET("/:id/switches/:switchId/ports/:portId", fabricHandler.GetSwitchPort)
 			fabrics.POST("/:id/switches/:switchId/ports", fabricHandler.CreateSwitchPort)

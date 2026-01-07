@@ -176,6 +176,77 @@ func (h *FabricHandler) GetSwitch(c *gin.Context) {
 	c.JSON(http.StatusOK, sw)
 }
 
+// SyncAllPorts syncs ports for ALL switches in a fabric from Nexus Dashboard
+func (h *FabricHandler) SyncAllPorts(c *gin.Context) {
+	fabricIDOrName := c.Param("id")
+
+	// Find fabric by ID first, then by name
+	var fabric models.Fabric
+	if err := database.DB.First(&fabric, "id = ?", fabricIDOrName).Error; err != nil {
+		if err := database.DB.Where("name = ?", fabricIDOrName).First(&fabric).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
+			return
+		}
+	}
+
+	// Get all switches for the fabric
+	var switches []models.Switch
+	if err := database.DB.Where("fabric_id = ?", fabric.ID).Find(&switches).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(switches) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "No switches found in fabric", "switches": 0, "ports": 0})
+		return
+	}
+
+	// Get uplink ports to exclude (inter-switch links) - uses cache if available
+	uplinks := sync.GetUplinksWithCache(c.Request.Context(), h.ndClient.LANFabric(), fabric.Name, cache.Client)
+
+	var totalPorts int
+	var totalErrors int
+	var switchResults []gin.H
+
+	for _, sw := range switches {
+		if sw.SerialNumber == "" {
+			continue
+		}
+
+		result, err := sync.SyncSwitchPorts(
+			c.Request.Context(),
+			database.DB,
+			h.ndClient.LANFabric(),
+			sw.ID,
+			sw.SerialNumber,
+			uplinks,
+		)
+		if err != nil {
+			totalErrors++
+			switchResults = append(switchResults, gin.H{
+				"switch": sw.Name,
+				"error":  err.Error(),
+			})
+			continue
+		}
+
+		totalPorts += result.Synced
+		switchResults = append(switchResults, gin.H{
+			"switch": sw.Name,
+			"synced": result.Synced,
+			"total":  result.Total,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Ports synced for all switches",
+		"switches": len(switches),
+		"ports":    totalPorts,
+		"errors":   totalErrors,
+		"details":  switchResults,
+	})
+}
+
 // SyncSwitchPorts syncs ports for a switch from Nexus Dashboard
 // Uses the shared sync.SyncSwitchPorts helper (same as background worker)
 func (h *FabricHandler) SyncSwitchPorts(c *gin.Context) {
