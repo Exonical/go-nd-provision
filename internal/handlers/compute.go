@@ -230,6 +230,37 @@ func (h *ComputeHandler) GetPortMappings(c *gin.Context) {
 	c.JSON(http.StatusOK, mappings)
 }
 
+// UpdatePortMapping updates a port mapping's NIC name
+func (h *ComputeHandler) UpdatePortMapping(c *gin.Context) {
+	mappingID := c.Param("mappingId")
+
+	var mapping models.ComputeNodePortMapping
+	if err := database.DB.First(&mapping, "id = ?", mappingID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Port mapping not found"})
+		return
+	}
+
+	var input struct {
+		NICName string `json:"nic_name"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if input.NICName != "" {
+		mapping.NICName = input.NICName
+	}
+
+	if err := database.DB.Save(&mapping).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, mapping)
+}
+
 // DeletePortMapping removes a port mapping
 func (h *ComputeHandler) DeletePortMapping(c *gin.Context) {
 	mappingID := c.Param("mappingId")

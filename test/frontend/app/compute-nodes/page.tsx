@@ -12,12 +12,16 @@ export default function ComputeNodesPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showMapForm, setShowMapForm] = useState(false);
+  const [editingMapping, setEditingMapping] = useState<PortMapping | null>(null);
 
   // Create node form state
   const [newNode, setNewNode] = useState({ name: '', hostname: '', ip_address: '' });
 
   // Map port form state
   const [newMapping, setNewMapping] = useState({ switch: '', port_name: '', nic_name: '' });
+
+  // Edit mapping form state
+  const [editNicName, setEditNicName] = useState('');
 
   const loadNodes = useCallback(async () => {
     try {
@@ -94,6 +98,24 @@ export default function ComputeNodesPage() {
     }
   };
 
+  const handleEditMapping = (mapping: PortMapping) => {
+    setEditingMapping(mapping);
+    setEditNicName(mapping.nic_name);
+  };
+
+  const handleUpdateMapping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedNode || !editingMapping) return;
+    try {
+      await computeNodesAPI.updatePortMapping(selectedNode.name, editingMapping.id, { nic_name: editNicName });
+      setEditingMapping(null);
+      setEditNicName('');
+      await loadMappings(selectedNode);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update mapping');
+    }
+  };
+
   useEffect(() => {
     loadNodes();
   }, [loadNodes]);
@@ -167,6 +189,50 @@ export default function ComputeNodesPage() {
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Mapping Modal */}
+      {editingMapping && selectedNode && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4 text-zinc-900 dark:text-white">
+              Edit Port Mapping
+            </h2>
+            <form onSubmit={handleUpdateMapping} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Switch/Port</label>
+                <div className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-zinc-600 dark:text-zinc-400 text-sm">
+                  {editingMapping.switch_port?.switch?.name || 'Unknown'} / {editingMapping.switch_port?.name || 'Unknown'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">NIC Name *</label>
+                <input
+                  type="text"
+                  value={editNicName}
+                  onChange={(e) => setEditNicName(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setEditingMapping(null); setEditNicName(''); }}
+                  className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Save
                 </button>
               </div>
             </form>
@@ -314,12 +380,20 @@ export default function ComputeNodesPage() {
                         Port ID: {mapping.switch_port_id}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteMapping(mapping)}
-                      className="text-red-600 hover:text-red-700 text-xs"
-                    >
-                      Remove
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditMapping(mapping)}
+                        className="text-blue-600 hover:text-blue-700 text-xs"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMapping(mapping)}
+                        className="text-red-600 hover:text-red-700 text-xs"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

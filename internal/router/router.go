@@ -72,6 +72,7 @@ func Setup(ndClient *ndclient.Client, cfg *config.Config) *gin.Engine {
 			// Port mapping routes
 			compute.GET("/:id/port-mappings", computeHandler.GetPortMappings)
 			compute.POST("/:id/port-mappings", computeHandler.AddPortMapping)
+			compute.PUT("/:id/port-mappings/:mappingId", computeHandler.UpdatePortMapping)
 			compute.DELETE("/:id/port-mappings/:mappingId", computeHandler.DeletePortMapping)
 		}
 

@@ -103,6 +103,8 @@ export const computeNodesAPI = {
   getPortMappings: (id: string) => fetchAPI<PortMapping[]>(`/api/v1/compute-nodes/${id}/port-mappings`),
   addPortMapping: (id: string, data: { switch: string; port_name: string; nic_name: string }) =>
     fetchAPI<PortMapping>(`/api/v1/compute-nodes/${id}/port-mappings`, { method: 'POST', body: JSON.stringify(data) }),
+  updatePortMapping: (nodeId: string, mappingId: string, data: { nic_name: string }) =>
+    fetchAPI<PortMapping>(`/api/v1/compute-nodes/${nodeId}/port-mappings/${mappingId}`, { method: 'PUT', body: JSON.stringify(data) }),
   deletePortMapping: (nodeId: string, mappingId: string) =>
     fetchAPI<{ message: string }>(`/api/v1/compute-nodes/${nodeId}/port-mappings/${mappingId}`, { method: 'DELETE' }),
 };
