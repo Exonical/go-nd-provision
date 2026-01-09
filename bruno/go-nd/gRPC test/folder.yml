@@ -1,0 +1,7 @@
+info:
+  name: gRPC test
+  type: folder
+  seq: 6
+
+request:
+  auth: inherit

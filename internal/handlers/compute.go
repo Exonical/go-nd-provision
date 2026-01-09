@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/banglin/go-nd/internal/database"
@@ -57,22 +58,36 @@ func (h *ComputeHandler) GetComputeNodes(c *gin.Context) {
 	c.JSON(http.StatusOK, nodes)
 }
 
-// GetComputeNode returns a single compute node by ID
-func (h *ComputeHandler) GetComputeNode(c *gin.Context) {
-	id := c.Param("id")
+// findComputeNode resolves a compute node by ID or name
+func (h *ComputeHandler) findComputeNode(idOrName string) (*models.ComputeNode, error) {
 	var node models.ComputeNode
-	if err := database.DB.Preload("PortMappings.SwitchPort.Switch").First(&node, "id = ?", id).Error; err != nil {
+	if err := database.DB.First(&node, "id = ?", idOrName).Error; err == nil {
+		return &node, nil
+	}
+	if err := database.DB.Where("name = ?", idOrName).First(&node).Error; err == nil {
+		return &node, nil
+	}
+	return nil, fmt.Errorf("compute node not found")
+}
+
+// GetComputeNode returns a single compute node by ID or name
+func (h *ComputeHandler) GetComputeNode(c *gin.Context) {
+	idOrName := c.Param("id")
+	node, err := h.findComputeNode(idOrName)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Compute node not found"})
 		return
 	}
+	// Preload relationships
+	database.DB.Preload("PortMappings.SwitchPort.Switch").First(node, "id = ?", node.ID)
 	c.JSON(http.StatusOK, node)
 }
 
-// UpdateComputeNode updates a compute node
+// UpdateComputeNode updates a compute node (by ID or name)
 func (h *ComputeHandler) UpdateComputeNode(c *gin.Context) {
-	id := c.Param("id")
-	var node models.ComputeNode
-	if err := database.DB.First(&node, "id = ?", id).Error; err != nil {
+	idOrName := c.Param("id")
+	node, err := h.findComputeNode(idOrName)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Compute node not found"})
 		return
 	}
@@ -114,10 +129,15 @@ func (h *ComputeHandler) UpdateComputeNode(c *gin.Context) {
 	c.JSON(http.StatusOK, node)
 }
 
-// DeleteComputeNode deletes a compute node
+// DeleteComputeNode deletes a compute node (by ID or name)
 func (h *ComputeHandler) DeleteComputeNode(c *gin.Context) {
-	id := c.Param("id")
-	if err := database.DB.Delete(&models.ComputeNode{}, "id = ?", id).Error; err != nil {
+	idOrName := c.Param("id")
+	node, err := h.findComputeNode(idOrName)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Compute node not found"})
+		return
+	}
+	if err := database.DB.Delete(&models.ComputeNode{}, "id = ?", node.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -129,7 +149,7 @@ func (h *ComputeHandler) DeleteComputeNode(c *gin.Context) {
 //   - switch_port_id: full port ID
 //   - switch + port_name: simplified lookup (e.g., switch: "site1-leaf1", port_name: "Ethernet1/1")
 func (h *ComputeHandler) AddPortMapping(c *gin.Context) {
-	nodeID := c.Param("id")
+	nodeIDOrName := c.Param("id")
 
 	var input struct {
 		SwitchPortID string `json:"switch_port_id"` // Full port ID (optional if switch + port_name provided)
@@ -143,9 +163,9 @@ func (h *ComputeHandler) AddPortMapping(c *gin.Context) {
 		return
 	}
 
-	// Verify compute node exists
-	var node models.ComputeNode
-	if err := database.DB.First(&node, "id = ?", nodeID).Error; err != nil {
+	// Verify compute node exists (by ID or name)
+	node, err := h.findComputeNode(nodeIDOrName)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Compute node not found"})
 		return
 	}
@@ -181,7 +201,7 @@ func (h *ComputeHandler) AddPortMapping(c *gin.Context) {
 
 	mapping := models.ComputeNodePortMapping{
 		ID:            uuid.New().String(),
-		ComputeNodeID: nodeID,
+		ComputeNodeID: node.ID,
 		SwitchPortID:  port.ID,
 		NICName:       input.NICName,
 	}
@@ -194,11 +214,16 @@ func (h *ComputeHandler) AddPortMapping(c *gin.Context) {
 	c.JSON(http.StatusCreated, mapping)
 }
 
-// GetPortMappings returns all port mappings for a compute node
+// GetPortMappings returns all port mappings for a compute node (by ID or name)
 func (h *ComputeHandler) GetPortMappings(c *gin.Context) {
-	nodeID := c.Param("id")
+	nodeIDOrName := c.Param("id")
+	node, err := h.findComputeNode(nodeIDOrName)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Compute node not found"})
+		return
+	}
 	var mappings []models.ComputeNodePortMapping
-	if err := database.DB.Preload("SwitchPort.Switch").Where("compute_node_id = ?", nodeID).Find(&mappings).Error; err != nil {
+	if err := database.DB.Preload("SwitchPort.Switch").Where("compute_node_id = ?", node.ID).Find(&mappings).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
