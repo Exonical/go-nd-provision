@@ -1,0 +1,16 @@
+info:
+  name: ComputeNodes - DeletePortMapping
+  type: grpc
+  seq: 17
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: go_nd.v1.ComputeNodesService/DeletePortMapping
+  message: |
+    {
+      "id": "mapping-id-here"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

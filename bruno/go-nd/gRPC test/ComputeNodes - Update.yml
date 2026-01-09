@@ -1,0 +1,18 @@
+info:
+  name: ComputeNodes - Update
+  type: grpc
+  seq: 14
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: go_nd.v1.ComputeNodesService/UpdateComputeNode
+  message: |
+    {
+      "id": "node-id-here",
+      "name": "updated-name",
+      "hostname": "updated-hostname.local"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

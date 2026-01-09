@@ -1,0 +1,13 @@
+info:
+  name: Jobs - CleanupExpired
+  type: grpc
+  seq: 6
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: go_nd.v1.JobsService/CleanupExpiredJobs
+  message: "{}"
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

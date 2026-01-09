@@ -1,0 +1,16 @@
+info:
+  name: Fabrics - GetPort
+  type: grpc
+  seq: 30
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: go_nd.v1.FabricsService/GetPort
+  message: |
+    {
+      "id": "port-id-here"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"
