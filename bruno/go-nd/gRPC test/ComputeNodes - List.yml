@@ -1,0 +1,13 @@
+info:
+  name: ComputeNodes - List
+  type: grpc
+  seq: 10
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: go_nd.v1.ComputeNodesService/ListComputeNodes
+  message: "{}"
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

@@ -2,6 +2,10 @@ name: local
 variables:
   - name: baseUrl
     value: http://localhost:8080
+  - name: grpcUrl
+    value: localhost:9090
+  - name: grpcToken
+    value: your-secret-token
   - name: fabricId
     value: DevNet_VxLAN_Fabric
   - name: switchId

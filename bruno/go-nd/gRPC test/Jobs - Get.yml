@@ -1,0 +1,16 @@
+info:
+  name: Jobs - Get
+  type: grpc
+  seq: 3
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: go_nd.v1.JobsService/GetJob
+  message: |
+    {
+      "slurm_job_id": "12345"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

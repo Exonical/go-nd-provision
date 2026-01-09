@@ -1,0 +1,18 @@
+info:
+  name: Jobs - Submit
+  type: grpc
+  seq: 4
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: go_nd.v1.JobsService/SubmitJob
+  message: |
+    {
+      "slurm_job_id": "12345",
+      "name": "my-hpc-job",
+      "compute_nodes": ["node-01", "node-02", "node-03"]
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

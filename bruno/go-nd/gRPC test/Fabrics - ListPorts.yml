@@ -1,0 +1,16 @@
+info:
+  name: Fabrics - ListPorts
+  type: grpc
+  seq: 25
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: go_nd.v1.FabricsService/ListPorts
+  message: |
+    {
+      "switch_id": "site1-leaf1"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

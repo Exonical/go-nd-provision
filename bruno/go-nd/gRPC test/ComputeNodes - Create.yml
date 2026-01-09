@@ -1,0 +1,18 @@
+info:
+  name: ComputeNodes - Create
+  type: grpc
+  seq: 12
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: go_nd.v1.ComputeNodesService/CreateComputeNode
+  message: |
+    {
+      "name": "hpc-node-01",
+      "hostname": "hpc-node-01.local",
+      "ip_address": "10.0.1.10"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"
