@@ -237,6 +237,7 @@ make proto
 | `POST` | `/api/v1/fabrics/:id/switches` | Create switch |
 | `POST` | `/api/v1/fabrics/:id/switches/sync` | Sync switches from ND |
 | `GET` | `/api/v1/fabrics/:id/networks` | List networks in fabric |
+| `POST` | `/api/v1/fabrics/:id/ports/sync` | Sync all ports in fabric |
 | `GET` | `/api/v1/fabrics/:id/switches/:switchId/ports` | List switch ports |
 | `GET` | `/api/v1/fabrics/:id/switches/:switchId/ports/:portId` | Get switch port by ID |
 | `POST` | `/api/v1/fabrics/:id/switches/:switchId/ports` | Create switch port |
@@ -391,6 +392,19 @@ curl -X POST http://localhost:8080/api/v1/security/associations \
     "contract_name": "allow-http",
     "attach": true
   }'
+```
+
+### Sync Fabric Data
+
+```bash
+# Sync fabrics from Nexus Dashboard
+curl -X POST http://localhost:8080/api/v1/fabrics/sync
+
+# Sync switches for a fabric
+curl -X POST http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches/sync
+
+# Sync all ports for all switches in a fabric
+curl -X POST http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/ports/sync
 ```
 
 ### Submit Job (Slurm Integration)
