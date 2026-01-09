@@ -165,14 +165,46 @@ func (h *FabricHandler) GetSwitches(c *gin.Context) {
 	c.JSON(http.StatusOK, switches)
 }
 
-// GetSwitch returns a single switch by ID
-func (h *FabricHandler) GetSwitch(c *gin.Context) {
-	switchID := c.Param("switchId")
+// findSwitch resolves a switch by ID, serial number, or name within a fabric
+func (h *FabricHandler) findSwitch(fabricID, switchIDOrSerial string) (*models.Switch, error) {
 	var sw models.Switch
-	if err := database.DB.Preload("Ports").First(&sw, "id = ?", switchID).Error; err != nil {
+	// Try by ID first
+	if err := database.DB.Where("id = ? AND fabric_id = ?", switchIDOrSerial, fabricID).First(&sw).Error; err == nil {
+		return &sw, nil
+	}
+	// Try by serial number
+	if err := database.DB.Where("serial_number = ? AND fabric_id = ?", switchIDOrSerial, fabricID).First(&sw).Error; err == nil {
+		return &sw, nil
+	}
+	// Try by name
+	if err := database.DB.Where("name = ? AND fabric_id = ?", switchIDOrSerial, fabricID).First(&sw).Error; err == nil {
+		return &sw, nil
+	}
+	return nil, fmt.Errorf("switch not found")
+}
+
+// GetSwitch returns a single switch by ID, serial number, or name
+func (h *FabricHandler) GetSwitch(c *gin.Context) {
+	fabricIDOrName := c.Param("id")
+	switchIDOrSerial := c.Param("switchId")
+
+	// Find fabric first
+	var fabric models.Fabric
+	if err := database.DB.First(&fabric, "id = ?", fabricIDOrName).Error; err != nil {
+		if err := database.DB.Where("name = ?", fabricIDOrName).First(&fabric).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
+			return
+		}
+	}
+
+	sw, err := h.findSwitch(fabric.ID, switchIDOrSerial)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Switch not found"})
 		return
 	}
+
+	// Preload ports
+	database.DB.Preload("Ports").First(sw, "id = ?", sw.ID)
 	c.JSON(http.StatusOK, sw)
 }
 
@@ -247,32 +279,36 @@ func (h *FabricHandler) SyncAllPorts(c *gin.Context) {
 	})
 }
 
-// SyncSwitchPorts syncs ports for a switch from Nexus Dashboard
+// SyncSwitchPorts syncs ports for a switch from Nexus Dashboard (by ID, serial, or name)
 // Uses the shared sync.SyncSwitchPorts helper (same as background worker)
 func (h *FabricHandler) SyncSwitchPorts(c *gin.Context) {
-	switchID := c.Param("switchId")
+	fabricIDOrName := c.Param("id")
+	switchIDOrSerial := c.Param("switchId")
 
-	// Get switch to find serial number and fabric
-	var sw models.Switch
-	if err := database.DB.Preload("Fabric").First(&sw, "id = ?", switchID).Error; err != nil {
+	// Find fabric first
+	var fabric models.Fabric
+	if err := database.DB.First(&fabric, "id = ?", fabricIDOrName).Error; err != nil {
+		if err := database.DB.Where("name = ?", fabricIDOrName).First(&fabric).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
+			return
+		}
+	}
+
+	sw, err := h.findSwitch(fabric.ID, switchIDOrSerial)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Switch not found"})
 		return
 	}
 
 	// Get uplink ports to exclude (inter-switch links) - uses cache if available
-	var uplinks map[string]bool
-	if sw.Fabric != nil {
-		uplinks = sync.GetUplinksWithCache(c.Request.Context(), h.ndClient.LANFabric(), sw.Fabric.Name, cache.Client)
-	} else {
-		uplinks = make(map[string]bool)
-	}
+	uplinks := sync.GetUplinksWithCache(c.Request.Context(), h.ndClient.LANFabric(), fabric.Name, cache.Client)
 
 	// Use shared helper for port sync
 	result, err := sync.SyncSwitchPorts(
 		c.Request.Context(),
 		database.DB,
 		h.ndClient.LANFabric(),
-		switchID,
+		sw.ID,
 		sw.SerialNumber,
 		uplinks,
 	)
@@ -289,10 +325,27 @@ func (h *FabricHandler) SyncSwitchPorts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Ports synced", "count": result.Synced, "total": result.Total})
 }
 
-// DeleteSwitchPorts deletes all ports for a switch (for cleanup/re-sync)
+// DeleteSwitchPorts deletes all ports for a switch (by ID, serial, or name)
 func (h *FabricHandler) DeleteSwitchPorts(c *gin.Context) {
-	switchID := c.Param("switchId")
-	result := database.DB.Where("switch_id = ?", switchID).Delete(&models.SwitchPort{})
+	fabricIDOrName := c.Param("id")
+	switchIDOrSerial := c.Param("switchId")
+
+	// Find fabric first
+	var fabric models.Fabric
+	if err := database.DB.First(&fabric, "id = ?", fabricIDOrName).Error; err != nil {
+		if err := database.DB.Where("name = ?", fabricIDOrName).First(&fabric).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
+			return
+		}
+	}
+
+	sw, err := h.findSwitch(fabric.ID, switchIDOrSerial)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Switch not found"})
+		return
+	}
+
+	result := database.DB.Where("switch_id = ?", sw.ID).Delete(&models.SwitchPort{})
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
@@ -300,11 +353,28 @@ func (h *FabricHandler) DeleteSwitchPorts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Ports deleted", "count": result.RowsAffected})
 }
 
-// GetSwitchPorts returns all ports for a switch
+// GetSwitchPorts returns all ports for a switch (by ID, serial, or name)
 func (h *FabricHandler) GetSwitchPorts(c *gin.Context) {
-	switchID := c.Param("switchId")
+	fabricIDOrName := c.Param("id")
+	switchIDOrSerial := c.Param("switchId")
+
+	// Find fabric first
+	var fabric models.Fabric
+	if err := database.DB.First(&fabric, "id = ?", fabricIDOrName).Error; err != nil {
+		if err := database.DB.Where("name = ?", fabricIDOrName).First(&fabric).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
+			return
+		}
+	}
+
+	sw, err := h.findSwitch(fabric.ID, switchIDOrSerial)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Switch not found"})
+		return
+	}
+
 	var ports []models.SwitchPort
-	if err := database.DB.Where("switch_id = ?", switchID).Find(&ports).Error; err != nil {
+	if err := database.DB.Where("switch_id = ?", sw.ID).Find(&ports).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -322,9 +392,25 @@ func (h *FabricHandler) GetSwitchPort(c *gin.Context) {
 	c.JSON(http.StatusOK, port)
 }
 
-// CreateSwitchPort creates a new switch port manually
+// CreateSwitchPort creates a new switch port manually (switch by ID, serial, or name)
 func (h *FabricHandler) CreateSwitchPort(c *gin.Context) {
-	switchID := c.Param("switchId")
+	fabricIDOrName := c.Param("id")
+	switchIDOrSerial := c.Param("switchId")
+
+	// Find fabric first
+	var fabric models.Fabric
+	if err := database.DB.First(&fabric, "id = ?", fabricIDOrName).Error; err != nil {
+		if err := database.DB.Where("name = ?", fabricIDOrName).First(&fabric).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
+			return
+		}
+	}
+
+	sw, err := h.findSwitch(fabric.ID, switchIDOrSerial)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Switch not found"})
+		return
+	}
 
 	var input struct {
 		Name        string `json:"name" binding:"required"`
@@ -347,7 +433,7 @@ func (h *FabricHandler) CreateSwitchPort(c *gin.Context) {
 		AdminState:  input.AdminState,
 		IsPresent:   true,
 		Speed:       input.Speed,
-		SwitchID:    switchID,
+		SwitchID:    sw.ID,
 	}
 
 	if err := database.DB.Create(&port).Error; err != nil {

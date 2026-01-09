@@ -324,8 +324,9 @@ curl http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches
 # Sync all ports for all switches in a fabric
 curl -X POST http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/ports/sync
 
-# List ports on a specific switch
-curl "http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches/{switch_id}/ports"
+# List ports on a specific switch (by serial number, name, or full ID)
+curl "http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches/99433ZAWNB5/ports"
+curl "http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches/site1-leaf1/ports"
 
 # List networks in fabric (from NDFC)
 curl http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/networks
