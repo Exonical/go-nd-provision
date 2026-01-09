@@ -5,11 +5,20 @@ import (
 	"github.com/banglin/go-nd/internal/database"
 	"github.com/banglin/go-nd/internal/handlers"
 	"github.com/banglin/go-nd/internal/ndclient"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func Setup(ndClient *ndclient.Client, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
+
+	// CORS middleware for frontend development
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}))
 
 	// Initialize handlers
 	fabricHandler := handlers.NewFabricHandler(ndClient)
