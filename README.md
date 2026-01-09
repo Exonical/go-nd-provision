@@ -332,56 +332,71 @@ curl "http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches/site1-le
 curl http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/networks
 ```
 
-### 2. Register Compute Nodes
+### 2. Register Compute Nodes and Map to Switch Ports
 
-Register your compute nodes (servers/HPC nodes):
+**Complete example:** Create a compute node and map it to a switch port:
 
 ```bash
-# Create a compute node
+# Step 1: Create a compute node
 curl -X POST http://localhost:8080/api/v1/compute-nodes \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "node-01",
-    "hostname": "node-01.hpc.local",
-    "ip_address": "10.0.0.10"
+    "name": "hpc-node-01",
+    "hostname": "hpc-node-01.local",
+    "ip_address": "10.0.1.10"
   }'
+# Response: {"id": "a50b23d8-...", "name": "hpc-node-01", ...}
 
+# Step 2: Map the node to a switch port (using simplified switch + port_name)
+curl -X POST http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "switch": "site1-leaf1",
+    "port_name": "Ethernet1/29",
+    "nic_name": "eth0",
+    "vlan": 100
+  }'
+# Response: {"id": "3d5b7ce7-...", "switch_port_id": "fabric:...:Ethernet1/29", ...}
+
+# Step 3: Verify the mapping
+curl http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings
+# Returns mapping with full switch and port details
+```
+
+**Other compute node operations:**
+
+```bash
 # List all compute nodes
 curl http://localhost:8080/api/v1/compute-nodes
 
 # Get a specific compute node
 curl http://localhost:8080/api/v1/compute-nodes/{node_id}
-```
 
-### 3. Map Compute Nodes to Switch Ports
-
-Map each compute node's NIC to its connected switch port:
-
-```bash
-# Add port mapping using switch name + port name (simplified)
-curl -X POST http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings \
+# Update a compute node
+curl -X PUT http://localhost:8080/api/v1/compute-nodes/{node_id} \
   -H "Content-Type: application/json" \
-  -d '{
-    "switch": "site1-leaf1",
-    "port_name": "Ethernet1/1",
-    "nic_name": "eth0",
-    "vlan": 100
-  }'
+  -d '{"description": "GPU node"}'
 
-# Or use full port ID if preferred
-curl -X POST http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings \
-  -H "Content-Type: application/json" \
-  -d '{
-    "switch_port_id": "fabric:DevNet_VxLAN_Fabric:99433ZAWNB5:Ethernet1/1",
-    "nic_name": "eth0",
-    "vlan": 100
-  }'
-
-# List port mappings for a node
-curl http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings
+# Delete a compute node
+curl -X DELETE http://localhost:8080/api/v1/compute-nodes/{node_id}
 
 # Find compute nodes connected to a switch
-curl http://localhost:8080/api/v1/switches/{switch_id}/compute-nodes
+curl http://localhost:8080/api/v1/switches/site1-leaf1/compute-nodes
+
+# Delete a port mapping
+curl -X DELETE http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings/{mapping_id}
+```
+
+**Port mapping options:**
+
+The `switch` field accepts: switch name (`site1-leaf1`), serial number (`99433ZAWNB5`), or full ID.
+
+```bash
+# Option 1: Switch name + port name (recommended)
+{"switch": "site1-leaf1", "port_name": "Ethernet1/29", "nic_name": "eth0", "vlan": 100}
+
+# Option 2: Full port ID
+{"switch_port_id": "fabric:DevNet_VxLAN_Fabric:99433ZAWNB5:Ethernet1/29", "nic_name": "eth0", "vlan": 100}
 ```
 
 ### 4. Create Security Groups
