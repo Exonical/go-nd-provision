@@ -353,8 +353,7 @@ curl -X POST http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings 
   -d '{
     "switch": "site1-leaf1",
     "port_name": "Ethernet1/29",
-    "nic_name": "eth0",
-    "vlan": 100
+    "nic_name": "eth0"
   }'
 # Response: {"id": "3d5b7ce7-...", "switch_port_id": "fabric:...:Ethernet1/29", ...}
 
@@ -393,11 +392,13 @@ The `switch` field accepts: switch name (`site1-leaf1`), serial number (`99433ZA
 
 ```bash
 # Option 1: Switch name + port name (recommended)
-{"switch": "site1-leaf1", "port_name": "Ethernet1/29", "nic_name": "eth0", "vlan": 100}
+{"switch": "site1-leaf1", "port_name": "Ethernet1/29", "nic_name": "eth0"}
 
 # Option 2: Full port ID
-{"switch_port_id": "fabric:DevNet_VxLAN_Fabric:99433ZAWNB5:Ethernet1/29", "nic_name": "eth0", "vlan": 100}
+{"switch_port_id": "fabric:DevNet_VxLAN_Fabric:99433ZAWNB5:Ethernet1/29", "nic_name": "eth0"}
 ```
+
+Note: VLAN assignment happens automatically during job provisioning, not at port mapping time.
 
 ### 4. Create Security Groups
 

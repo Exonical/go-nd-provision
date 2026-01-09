@@ -136,7 +136,6 @@ func (h *ComputeHandler) AddPortMapping(c *gin.Context) {
 		Switch       string `json:"switch"`         // Switch name/serial/ID (optional if switch_port_id provided)
 		PortName     string `json:"port_name"`      // Port name like "Ethernet1/1" (optional if switch_port_id provided)
 		NICName      string `json:"nic_name"`
-		VLAN         int    `json:"vlan"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -185,7 +184,6 @@ func (h *ComputeHandler) AddPortMapping(c *gin.Context) {
 		ComputeNodeID: nodeID,
 		SwitchPortID:  port.ID,
 		NICName:       input.NICName,
-		VLAN:          input.VLAN,
 	}
 
 	if err := database.DB.Create(&mapping).Error; err != nil {
