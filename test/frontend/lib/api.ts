@@ -65,6 +65,7 @@ export interface PortMapping {
   compute_node_id: string;
   switch_port_id: string;
   switch_port?: SwitchPort & { switch?: Switch };
+  compute_node?: ComputeNode;
   nic_name: string;
   vlan: number;
   created_at: string;
@@ -89,6 +90,7 @@ export const switchesAPI = {
 export const portsAPI = {
   list: (fabricId: string, switchId: string) => fetchAPI<SwitchPort[]>(`/api/v1/fabrics/${fabricId}/switches/${switchId}/ports`),
   syncAll: (fabricId: string) => fetchAPI<{ ports: number; switches: number }>(`/api/v1/fabrics/${fabricId}/ports/sync`, { method: 'POST' }),
+  getMappingsBySwitch: (switchId: string) => fetchAPI<PortMapping[]>(`/api/v1/switches/${switchId}/compute-nodes`),
 };
 
 // Compute Nodes API
@@ -103,7 +105,7 @@ export const computeNodesAPI = {
   getPortMappings: (id: string) => fetchAPI<PortMapping[]>(`/api/v1/compute-nodes/${id}/port-mappings`),
   addPortMapping: (id: string, data: { switch: string; port_name: string; nic_name: string }) =>
     fetchAPI<PortMapping>(`/api/v1/compute-nodes/${id}/port-mappings`, { method: 'POST', body: JSON.stringify(data) }),
-  updatePortMapping: (nodeId: string, mappingId: string, data: { nic_name: string }) =>
+  updatePortMapping: (nodeId: string, mappingId: string, data: { nic_name?: string; switch?: string; port_name?: string }) =>
     fetchAPI<PortMapping>(`/api/v1/compute-nodes/${nodeId}/port-mappings/${mappingId}`, { method: 'PUT', body: JSON.stringify(data) }),
   deletePortMapping: (nodeId: string, mappingId: string) =>
     fetchAPI<{ message: string }>(`/api/v1/compute-nodes/${nodeId}/port-mappings/${mappingId}`, { method: 'DELETE' }),

@@ -230,7 +230,7 @@ func (h *ComputeHandler) GetPortMappings(c *gin.Context) {
 	c.JSON(http.StatusOK, mappings)
 }
 
-// UpdatePortMapping updates a port mapping's NIC name
+// UpdatePortMapping updates a port mapping (NIC name and/or switch port)
 func (h *ComputeHandler) UpdatePortMapping(c *gin.Context) {
 	mappingID := c.Param("mappingId")
 
@@ -241,7 +241,10 @@ func (h *ComputeHandler) UpdatePortMapping(c *gin.Context) {
 	}
 
 	var input struct {
-		NICName string `json:"nic_name"`
+		NICName      string `json:"nic_name"`
+		SwitchPortID string `json:"switch_port_id"` // Full port ID (optional)
+		Switch       string `json:"switch"`         // Switch name/serial/ID (optional)
+		PortName     string `json:"port_name"`      // Port name like "Ethernet1/1" (optional)
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -253,11 +256,40 @@ func (h *ComputeHandler) UpdatePortMapping(c *gin.Context) {
 		mapping.NICName = input.NICName
 	}
 
+	// Update switch port if provided
+	if input.SwitchPortID != "" {
+		var port models.SwitchPort
+		if err := database.DB.First(&port, "id = ?", input.SwitchPortID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Switch port not found"})
+			return
+		}
+		mapping.SwitchPortID = port.ID
+	} else if input.Switch != "" && input.PortName != "" {
+		// Simplified lookup: find switch first, then port by name
+		var sw models.Switch
+		if err := database.DB.First(&sw, "id = ?", input.Switch).Error; err != nil {
+			if err := database.DB.Where("serial_number = ?", input.Switch).First(&sw).Error; err != nil {
+				if err := database.DB.Where("name = ?", input.Switch).First(&sw).Error; err != nil {
+					c.JSON(http.StatusNotFound, gin.H{"error": "Switch not found"})
+					return
+				}
+			}
+		}
+		var port models.SwitchPort
+		if err := database.DB.Where("switch_id = ? AND name = ?", sw.ID, input.PortName).First(&port).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Port not found on switch"})
+			return
+		}
+		mapping.SwitchPortID = port.ID
+	}
+
 	if err := database.DB.Save(&mapping).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Reload with associations
+	database.DB.Preload("SwitchPort.Switch").First(&mapping, "id = ?", mapping.ID)
 	c.JSON(http.StatusOK, mapping)
 }
 

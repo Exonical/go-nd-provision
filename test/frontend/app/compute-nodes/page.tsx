@@ -22,6 +22,8 @@ export default function ComputeNodesPage() {
 
   // Edit mapping form state
   const [editNicName, setEditNicName] = useState('');
+  const [editSwitch, setEditSwitch] = useState('');
+  const [editPortName, setEditPortName] = useState('');
 
   const loadNodes = useCallback(async () => {
     try {
@@ -101,15 +103,23 @@ export default function ComputeNodesPage() {
   const handleEditMapping = (mapping: PortMapping) => {
     setEditingMapping(mapping);
     setEditNicName(mapping.nic_name);
+    setEditSwitch(mapping.switch_port?.switch?.name || '');
+    setEditPortName(mapping.switch_port?.name || '');
   };
 
   const handleUpdateMapping = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedNode || !editingMapping) return;
     try {
-      await computeNodesAPI.updatePortMapping(selectedNode.name, editingMapping.id, { nic_name: editNicName });
+      await computeNodesAPI.updatePortMapping(selectedNode.name, editingMapping.id, {
+        nic_name: editNicName,
+        switch: editSwitch,
+        port_name: editPortName
+      });
       setEditingMapping(null);
       setEditNicName('');
+      setEditSwitch('');
+      setEditPortName('');
       await loadMappings(selectedNode);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update mapping');
@@ -205,10 +215,26 @@ export default function ComputeNodesPage() {
             </h2>
             <form onSubmit={handleUpdateMapping} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Switch/Port</label>
-                <div className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-zinc-600 dark:text-zinc-400 text-sm">
-                  {editingMapping.switch_port?.switch?.name || 'Unknown'} / {editingMapping.switch_port?.name || 'Unknown'}
-                </div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Switch Name *</label>
+                <input
+                  type="text"
+                  value={editSwitch}
+                  onChange={(e) => setEditSwitch(e.target.value)}
+                  placeholder="e.g., site1-leaf1"
+                  required
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Port Name *</label>
+                <input
+                  type="text"
+                  value={editPortName}
+                  onChange={(e) => setEditPortName(e.target.value)}
+                  placeholder="e.g., Ethernet1/29"
+                  required
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">NIC Name *</label>
@@ -216,6 +242,7 @@ export default function ComputeNodesPage() {
                   type="text"
                   value={editNicName}
                   onChange={(e) => setEditNicName(e.target.value)}
+                  placeholder="e.g., eth0"
                   required
                   className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                 />
@@ -223,7 +250,7 @@ export default function ComputeNodesPage() {
               <div className="flex gap-2 justify-end">
                 <button
                   type="button"
-                  onClick={() => { setEditingMapping(null); setEditNicName(''); }}
+                  onClick={() => { setEditingMapping(null); setEditNicName(''); setEditSwitch(''); setEditPortName(''); }}
                   className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                 >
                   Cancel
