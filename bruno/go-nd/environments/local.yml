@@ -3,7 +3,7 @@ variables:
   - name: baseUrl
     value: http://localhost:8080
   - name: grpcUrl
-    value: localhost:9090
+    value: localhost:50051
   - name: grpcToken
     value: your-secret-token
   - name: fabricId
