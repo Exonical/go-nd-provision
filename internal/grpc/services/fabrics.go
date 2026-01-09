@@ -50,15 +50,18 @@ func (s *FabricsServiceServer) ListFabrics(ctx context.Context, req *v1.ListFabr
 	}, nil
 }
 
-// GetFabric retrieves a fabric by ID.
+// GetFabric retrieves a fabric by ID or name.
 func (s *FabricsServiceServer) GetFabric(ctx context.Context, req *v1.GetFabricRequest) (*v1.GetFabricResponse, error) {
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	var fabric models.Fabric
+	// Try by ID first, then by name
 	if err := database.DB.WithContext(ctx).Preload("Switches").First(&fabric, "id = ?", req.Id).Error; err != nil {
-		return nil, status.Error(codes.NotFound, "fabric not found")
+		if err := database.DB.WithContext(ctx).Preload("Switches").Where("name = ?", req.Id).First(&fabric).Error; err != nil {
+			return nil, status.Error(codes.NotFound, "fabric not found")
+		}
 	}
 
 	return &v1.GetFabricResponse{
