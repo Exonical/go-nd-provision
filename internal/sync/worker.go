@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -250,23 +251,33 @@ func (w *Worker) syncAll() {
 					zap.String("fabric", w.fabricName))
 				return
 			}
-			// For any other error (network issues, timeouts), skip to avoid duplicate syncs
-			// Only proceed without lock if Valkey is completely unavailable (Client == nil)
-			logger.Warn("NDFC sync skipped: lock acquisition failed",
-				zap.String("fabric", w.fabricName),
-				zap.Error(err))
-			return
+			// Check for NOPERM error - proceed without distributed lock (single-instance mode)
+			if strings.Contains(err.Error(), "NOPERM") {
+				logger.Warn("Distributed locking unavailable (NOPERM), proceeding in single-instance mode",
+					zap.String("fabric", w.fabricName))
+				release = nil      // No lock to release
+				valkeyClient = nil // Disable lock-related operations
+			} else {
+				// For other errors (network issues, timeouts), skip to avoid duplicate syncs
+				logger.Warn("NDFC sync skipped: lock acquisition failed",
+					zap.String("fabric", w.fabricName),
+					zap.Error(err))
+				return
+			}
 		}
 
-		// Store lock info for stale lock detection (instanceID:timestamp)
-		lockInfo := fmt.Sprintf("%s:%d", w.instanceID, time.Now().Unix())
-		infoCtx, infoCancel := context.WithTimeout(w.ctx, cacheOpTimeout)
-		_ = valkeyClient.SetString(infoCtx, lockInfoKey, lockInfo, syncLockTTL+time.Minute)
-		infoCancel()
+		// Only set up lock info and extender if we acquired the lock
+		if release != nil {
+			// Store lock info for stale lock detection (instanceID:timestamp)
+			lockInfo := fmt.Sprintf("%s:%d", w.instanceID, time.Now().Unix())
+			infoCtx, infoCancel := context.WithTimeout(w.ctx, cacheOpTimeout)
+			_ = valkeyClient.SetString(infoCtx, lockInfoKey, lockInfo, syncLockTTL+time.Minute)
+			infoCancel()
 
-		// Start lock extender goroutine to keep lock alive during long syncs
-		stopLockExtender = make(chan struct{})
-		go w.extendLockPeriodically(lockKey, lockInfoKey, stopLockExtender)
+			// Start lock extender goroutine to keep lock alive during long syncs
+			stopLockExtender = make(chan struct{})
+			go w.extendLockPeriodically(lockKey, lockInfoKey, stopLockExtender)
+		}
 	}
 
 	// Use parent context with timeout (15m for large fabrics with many switches)

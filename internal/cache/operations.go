@@ -29,7 +29,8 @@ func (v *ValkeyClient) SetNX(ctx context.Context, key string, value string, ttl 
 	return true, nil
 }
 
-// AcquireLock attempts to acquire a distributed lock
+// AcquireLock attempts to acquire a distributed lock using the Valkey distlock algorithm
+// See: https://valkey.io/topics/distlock/
 // Returns a release function if successful, or ErrLockNotAcquired if the lock is held
 func (v *ValkeyClient) AcquireLock(ctx context.Context, key string, value string, ttl time.Duration) (func() error, error) {
 	acquired, err := v.SetNX(ctx, key, value, ttl)
@@ -40,11 +41,26 @@ func (v *ValkeyClient) AcquireLock(ctx context.Context, key string, value string
 		return nil, ErrLockNotAcquired
 	}
 
-	// Return a release function
+	// Return a release function that safely releases only if we still own the lock
+	// Uses Lua script for atomic check-and-delete (per Valkey distlock spec)
 	release := func() error {
-		return v.Delete(ctx, key)
+		return v.ReleaseLock(ctx, key, value)
 	}
 	return release, nil
+}
+
+// ReleaseLock safely releases a lock only if the value matches (we still own it)
+// This prevents releasing a lock that was acquired by another client after expiry
+func (v *ValkeyClient) ReleaseLock(ctx context.Context, key string, value string) error {
+	// Lua script: delete key only if value matches
+	script := `if redis.call("get",KEYS[1]) == ARGV[1] then return redis.call("del",KEYS[1]) else return 0 end`
+	cmd := v.client.B().Eval().Script(script).Numkeys(1).Key(key).Arg(value).Build()
+	_, err := v.client.Do(ctx, cmd).ToInt64()
+	if err != nil {
+		// Fallback to simple delete if Lua not supported
+		return v.Delete(ctx, key)
+	}
+	return nil
 }
 
 // ExtendLock extends the TTL of an existing lock (for long operations)
