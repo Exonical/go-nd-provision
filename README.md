@@ -302,114 +302,156 @@ make proto
 
 ## Example Usage
 
-### Create a Compute Node
+The following examples show a typical workflow in order of operations.
+
+### 1. Sync Fabric Data from Nexus Dashboard
+
+First, sync your fabric infrastructure from Nexus Dashboard:
 
 ```bash
+# Sync all fabrics
+curl -X POST http://localhost:8080/api/v1/fabrics/sync
+
+# List synced fabrics
+curl http://localhost:8080/api/v1/fabrics
+
+# Sync switches for a specific fabric
+curl -X POST http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches/sync
+
+# List switches in fabric
+curl http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches
+
+# Sync all ports for all switches in a fabric
+curl -X POST http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/ports/sync
+
+# List ports on a specific switch
+curl "http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches/{switch_id}/ports"
+
+# List networks in fabric (from NDFC)
+curl http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/networks
+```
+
+### 2. Register Compute Nodes
+
+Register your compute nodes (servers/HPC nodes):
+
+```bash
+# Create a compute node
 curl -X POST http://localhost:8080/api/v1/compute-nodes \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "server-01",
-    "hostname": "server-01.example.com",
-    "ip_address": "10.0.0.10",
-    "mac_address": "00:11:22:33:44:55"
+    "name": "node-01",
+    "hostname": "node-01.hpc.local",
+    "ip_address": "10.0.0.10"
   }'
+
+# List all compute nodes
+curl http://localhost:8080/api/v1/compute-nodes
+
+# Get a specific compute node
+curl http://localhost:8080/api/v1/compute-nodes/{node_id}
 ```
 
-### Map Compute Node to Switch Port
+### 3. Map Compute Nodes to Switch Ports
+
+Map each compute node's NIC to its connected switch port:
 
 ```bash
+# Add port mapping (node NIC -> switch port)
 curl -X POST http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings \
   -H "Content-Type: application/json" \
   -d '{
-    "switch_port_id": "port-uuid",
+    "switch_port_id": "{port_id}",
     "nic_name": "eth0",
     "vlan": 100
   }'
+
+# List port mappings for a node
+curl http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings
+
+# Find compute nodes connected to a switch
+curl http://localhost:8080/api/v1/switches/{switch_id}/compute-nodes
 ```
 
-### Create Security Group
+### 4. Create Security Groups
+
+Create security groups with port selectors:
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/security/groups \
   -H "Content-Type: application/json" \
   -d '{
-    "group_name": "web-servers",
-    "fabric_name": "MyFabric",
+    "group_name": "hpc-job-12345",
+    "group_id": 12345,
+    "fabric_name": "DevNet_VxLAN_Fabric",
     "attach": true,
-    "ip_selectors": [
-      {
-        "type": "Connected Endpoints",
-        "ip": "10.101.0.50",
-        "vrf_name": "MyVRF"
-      }
-    ],
-    "network_selectors": [
-      {
-        "vrf_name": "MyVRF",
-        "network": "MyNetwork"
-      }
-    ],
     "network_port_selectors": [
       {
-        "network": "MyNetwork",
-        "switch_id": "FDO12345678",
+        "network": "HPC_Network",
+        "switch_id": "99433ZAWNB5",
         "interface_name": "Ethernet1/5"
       }
     ]
   }'
+
+# List security groups
+curl http://localhost:8080/api/v1/security/groups
+
+# List security groups from NDFC
+curl "http://localhost:8080/api/v1/security/groups/ndfc?fabric_name=DevNet_VxLAN_Fabric"
 ```
 
-### Create Security Contract
+### 5. Create Security Contracts
+
+Define traffic rules between security groups:
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/security/contracts \
   -H "Content-Type: application/json" \
   -d '{
-    "contract_name": "allow-http",
-    "fabric_name": "MyFabric",
+    "contract_name": "allow-all",
+    "fabric_name": "DevNet_VxLAN_Fabric",
     "rules": [
       {
-        "direction": "in",
+        "direction": "in-out",
         "action": "permit",
-        "protocol_name": "http"
+        "protocol_name": "ip"
       }
     ]
   }'
+
+# List security contracts
+curl http://localhost:8080/api/v1/security/contracts
 ```
 
-### Create Security Association
+### 6. Create Security Associations
+
+Associate security groups with contracts:
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/security/associations \
   -H "Content-Type: application/json" \
   -d '{
-    "fabric_name": "MyFabric",
-    "vrf_name": "MyVRF",
+    "fabric_name": "DevNet_VxLAN_Fabric",
+    "vrf_name": "HPC_VRF",
     "src_group_id": 12345,
-    "dst_group_id": 12346,
-    "src_group_name": "web-servers",
-    "dst_group_name": "db-servers",
-    "contract_name": "allow-http",
+    "dst_group_id": 12345,
+    "src_group_name": "hpc-job-12345",
+    "dst_group_name": "hpc-job-12345",
+    "contract_name": "allow-all",
     "attach": true
   }'
+
+# List security associations
+curl http://localhost:8080/api/v1/security/associations
 ```
 
-### Sync Fabric Data
+### 7. Job Management (Slurm Integration)
+
+For HPC environments, use the jobs API to automate security policy lifecycle:
 
 ```bash
-# Sync fabrics from Nexus Dashboard
-curl -X POST http://localhost:8080/api/v1/fabrics/sync
-
-# Sync switches for a fabric
-curl -X POST http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/switches/sync
-
-# Sync all ports for all switches in a fabric
-curl -X POST http://localhost:8080/api/v1/fabrics/DevNet_VxLAN_Fabric/ports/sync
-```
-
-### Submit Job (Slurm Integration)
-
-```bash
+# Submit a job (creates security groups automatically)
 curl -X POST http://localhost:8080/api/v1/jobs \
   -H "Content-Type: application/json" \
   -d '{
@@ -417,29 +459,20 @@ curl -X POST http://localhost:8080/api/v1/jobs \
     "name": "my-hpc-job",
     "compute_nodes": ["node-01", "node-02", "node-03"]
   }'
-```
 
-### Get Job
+# List all jobs
+curl http://localhost:8080/api/v1/jobs
 
-```bash
+# List active jobs only
+curl "http://localhost:8080/api/v1/jobs?status=active"
+
+# Get job details
 curl http://localhost:8080/api/v1/jobs/12345
-```
 
-### List Jobs
-
-```bash
-curl http://localhost:8080/api/v1/jobs?status=active
-```
-
-### Complete Job
-
-```bash
+# Complete a job (removes security policies)
 curl -X POST http://localhost:8080/api/v1/jobs/12345/complete
-```
 
-### Cleanup Expired Jobs
-
-```bash
+# Cleanup expired jobs
 curl -X POST http://localhost:8080/api/v1/jobs/cleanup
 ```
 
