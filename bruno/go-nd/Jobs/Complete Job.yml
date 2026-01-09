@@ -1,0 +1,18 @@
+info:
+  name: Complete Job
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/jobs/{{slurmJobId}}/complete"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+vars:pre-request:
+  slurmJobId: "12345"

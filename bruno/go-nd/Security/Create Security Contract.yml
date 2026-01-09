@@ -1,0 +1,29 @@
+info:
+  name: Create Security Contract
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/security/contracts"
+  auth: inherit
+  body:
+    type: json
+    json: |
+      {
+        "contract_name": "allow-all",
+        "fabric_name": "DevNet_VxLAN_Fabric",
+        "rules": [
+          {
+            "direction": "in-out",
+            "action": "permit",
+            "protocol_name": "ip"
+          }
+        ]
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,12 @@
+name: local
+variables:
+  - name: baseUrl
+    value: http://localhost:8080
+  - name: fabricId
+    value: DevNet_VxLAN_Fabric
+  - name: switchId
+    value: site1-leaf1
+  - name: nodeId
+    value: ""
+  - name: slurmJobId
+    value: "12345"

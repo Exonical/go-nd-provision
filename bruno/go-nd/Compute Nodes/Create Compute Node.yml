@@ -1,0 +1,23 @@
+info:
+  name: Create Compute Node
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/compute-nodes"
+  auth: inherit
+  body:
+    type: json
+    json: |
+      {
+        "name": "hpc-node-01",
+        "hostname": "hpc-node-01.local",
+        "ip_address": "10.0.1.10"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

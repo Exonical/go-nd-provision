@@ -1,0 +1,28 @@
+info:
+  name: Create Security Association
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/security/associations"
+  auth: inherit
+  body:
+    type: json
+    json: |
+      {
+        "fabric_name": "DevNet_VxLAN_Fabric",
+        "vrf_name": "HPC_VRF",
+        "src_group_id": 12345,
+        "dst_group_id": 12345,
+        "src_group_name": "hpc-job-12345",
+        "dst_group_name": "hpc-job-12345",
+        "contract_name": "allow-all",
+        "attach": true
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

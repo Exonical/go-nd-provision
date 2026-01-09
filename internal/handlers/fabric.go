@@ -73,13 +73,15 @@ func (h *FabricHandler) GetFabrics(c *gin.Context) {
 	c.JSON(http.StatusOK, fabrics)
 }
 
-// GetFabric returns a single fabric by ID
+// GetFabric returns a single fabric by ID or name
 func (h *FabricHandler) GetFabric(c *gin.Context) {
-	id := c.Param("id")
+	fabricIDOrName := c.Param("id")
 	var fabric models.Fabric
-	if err := database.DB.Preload("Switches").First(&fabric, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
-		return
+	if err := database.DB.Preload("Switches").First(&fabric, "id = ?", fabricIDOrName).Error; err != nil {
+		if err := database.DB.Preload("Switches").Where("name = ?", fabricIDOrName).First(&fabric).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Fabric not found"})
+			return
+		}
 	}
 	c.JSON(http.StatusOK, fabric)
 }

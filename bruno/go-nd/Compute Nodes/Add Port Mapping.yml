@@ -1,0 +1,26 @@
+info:
+  name: Add Port Mapping
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/compute-nodes/{{nodeId}}/port-mappings"
+  auth: inherit
+  body:
+    type: json
+    json: |
+      {
+        "switch": "site1-leaf1",
+        "port_name": "Ethernet1/29",
+        "nic_name": "eth0"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+vars:pre-request:
+  nodeId: ""

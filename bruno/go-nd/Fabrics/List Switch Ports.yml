@@ -1,0 +1,19 @@
+info:
+  name: List Switch Ports
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/fabrics/{{fabricId}}/switches/{{switchId}}/ports"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+vars:pre-request:
+  fabricId: DevNet_VxLAN_Fabric
+  switchId: site1-leaf1

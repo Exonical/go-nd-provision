@@ -1,0 +1,23 @@
+info:
+  name: Submit Job
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/jobs"
+  auth: inherit
+  body:
+    type: json
+    json: |
+      {
+        "slurm_job_id": "12345",
+        "name": "my-hpc-job",
+        "compute_nodes": ["node-01", "node-02", "node-03"]
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

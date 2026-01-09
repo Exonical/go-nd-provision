@@ -1,0 +1,18 @@
+info:
+  name: Sync Switches
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/fabrics/{{fabricId}}/switches/sync"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+vars:pre-request:
+  fabricId: DevNet_VxLAN_Fabric

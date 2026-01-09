@@ -1,0 +1,31 @@
+info:
+  name: Create Security Group
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/security/groups"
+  auth: inherit
+  body:
+    type: json
+    json: |
+      {
+        "group_name": "hpc-job-12345",
+        "group_id": 12345,
+        "fabric_name": "DevNet_VxLAN_Fabric",
+        "attach": true,
+        "network_port_selectors": [
+          {
+            "network": "HPC_Network",
+            "switch_id": "99433ZAWNB5",
+            "interface_name": "Ethernet1/5"
+          }
+        ]
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

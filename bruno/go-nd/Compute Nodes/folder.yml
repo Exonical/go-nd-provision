@@ -1,0 +1,7 @@
+info:
+  name: Compute Nodes
+  type: folder
+  seq: 3
+
+request:
+  auth: inherit
