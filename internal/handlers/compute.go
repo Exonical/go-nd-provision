@@ -125,11 +125,16 @@ func (h *ComputeHandler) DeleteComputeNode(c *gin.Context) {
 }
 
 // AddPortMapping maps a compute node to a switch port
+// Accepts either:
+//   - switch_port_id: full port ID
+//   - switch + port_name: simplified lookup (e.g., switch: "site1-leaf1", port_name: "Ethernet1/1")
 func (h *ComputeHandler) AddPortMapping(c *gin.Context) {
 	nodeID := c.Param("id")
 
 	var input struct {
-		SwitchPortID string `json:"switch_port_id" binding:"required"`
+		SwitchPortID string `json:"switch_port_id"` // Full port ID (optional if switch + port_name provided)
+		Switch       string `json:"switch"`         // Switch name/serial/ID (optional if switch_port_id provided)
+		PortName     string `json:"port_name"`      // Port name like "Ethernet1/1" (optional if switch_port_id provided)
 		NICName      string `json:"nic_name"`
 		VLAN         int    `json:"vlan"`
 	}
@@ -146,17 +151,39 @@ func (h *ComputeHandler) AddPortMapping(c *gin.Context) {
 		return
 	}
 
-	// Verify switch port exists
+	// Resolve switch port ID
 	var port models.SwitchPort
-	if err := database.DB.First(&port, "id = ?", input.SwitchPortID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Switch port not found"})
+	if input.SwitchPortID != "" {
+		// Direct port ID lookup
+		if err := database.DB.First(&port, "id = ?", input.SwitchPortID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Switch port not found"})
+			return
+		}
+	} else if input.Switch != "" && input.PortName != "" {
+		// Simplified lookup: find switch first, then port by name
+		var sw models.Switch
+		if err := database.DB.First(&sw, "id = ?", input.Switch).Error; err != nil {
+			if err := database.DB.Where("serial_number = ?", input.Switch).First(&sw).Error; err != nil {
+				if err := database.DB.Where("name = ?", input.Switch).First(&sw).Error; err != nil {
+					c.JSON(http.StatusNotFound, gin.H{"error": "Switch not found"})
+					return
+				}
+			}
+		}
+		// Find port by name within this switch
+		if err := database.DB.Where("switch_id = ? AND name = ?", sw.ID, input.PortName).First(&port).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Port not found on switch"})
+			return
+		}
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Either switch_port_id or (switch + port_name) required"})
 		return
 	}
 
 	mapping := models.ComputeNodePortMapping{
 		ID:            uuid.New().String(),
 		ComputeNodeID: nodeID,
-		SwitchPortID:  input.SwitchPortID,
+		SwitchPortID:  port.ID,
 		NICName:       input.NICName,
 		VLAN:          input.VLAN,
 	}

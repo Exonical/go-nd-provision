@@ -358,11 +358,21 @@ curl http://localhost:8080/api/v1/compute-nodes/{node_id}
 Map each compute node's NIC to its connected switch port:
 
 ```bash
-# Add port mapping (node NIC -> switch port)
+# Add port mapping using switch name + port name (simplified)
 curl -X POST http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings \
   -H "Content-Type: application/json" \
   -d '{
-    "switch_port_id": "{port_id}",
+    "switch": "site1-leaf1",
+    "port_name": "Ethernet1/1",
+    "nic_name": "eth0",
+    "vlan": 100
+  }'
+
+# Or use full port ID if preferred
+curl -X POST http://localhost:8080/api/v1/compute-nodes/{node_id}/port-mappings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "switch_port_id": "fabric:DevNet_VxLAN_Fabric:99433ZAWNB5:Ethernet1/1",
     "nic_name": "eth0",
     "vlan": 100
   }'
