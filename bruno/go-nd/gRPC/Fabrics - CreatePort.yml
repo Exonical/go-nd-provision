@@ -1,0 +1,20 @@
+info:
+  name: Fabrics - CreatePort
+  type: grpc
+  seq: 31
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.FabricsService/CreatePort
+  methodType: unary
+  message: |
+    {
+      "switch_id": "site1-leaf1",
+      "name": "Ethernet1/99",
+      "admin_state": "true",
+      "speed": "Auto"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

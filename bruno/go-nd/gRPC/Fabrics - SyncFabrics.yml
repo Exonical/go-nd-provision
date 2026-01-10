@@ -1,0 +1,14 @@
+info:
+  name: Fabrics - SyncFabrics
+  type: grpc
+  seq: 22
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.FabricsService/SyncFabrics
+  methodType: unary
+  message: "{}"
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

@@ -1,0 +1,14 @@
+info:
+  name: Fabrics - List
+  type: grpc
+  seq: 20
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.FabricsService/ListFabrics
+  methodType: unary
+  message: "{}"
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

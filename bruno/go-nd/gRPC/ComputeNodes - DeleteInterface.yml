@@ -1,0 +1,18 @@
+info:
+  name: ComputeNodes - DeleteInterface
+  type: grpc
+  seq: 33
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/DeleteInterface
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: |
+    {
+      "id": "{{interfaceId}}",
+      "compute_node_id": "{{nodeId}}"
+    }
+  auth: inherit

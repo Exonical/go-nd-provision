@@ -1,0 +1,17 @@
+info:
+  name: ComputeNodes - Get
+  type: grpc
+  seq: 11
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/GetComputeNode
+  methodType: unary
+  message: |
+    {
+      "id": "node-id-here"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

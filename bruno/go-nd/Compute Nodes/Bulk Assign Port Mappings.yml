@@ -1,0 +1,32 @@
+info:
+  name: Bulk Assign Port Mappings
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/port-mappings/bulk"
+  auth: inherit
+  body:
+    type: json
+    json: |
+      {
+        "assignments": [
+          {
+            "switch_port_id": "fabric:MyFabric:SERIAL123:Ethernet1/1",
+            "node_id": "node-uuid-1",
+            "interface_id": "interface-uuid-1"
+          },
+          {
+            "switch_port_id": "fabric:MyFabric:SERIAL123:Ethernet1/2",
+            "node_id": "node-uuid-1",
+            "interface_id": "interface-uuid-2"
+          }
+        ]
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

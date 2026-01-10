@@ -1,0 +1,17 @@
+info:
+  name: ComputeNodes - ListInterfaces
+  type: grpc
+  seq: 30
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/ListInterfaces
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: |
+    {
+      "compute_node_id": "{{nodeId}}"
+    }
+  auth: inherit

@@ -1,0 +1,17 @@
+info:
+  name: Fabrics - DeletePorts
+  type: grpc
+  seq: 32
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.FabricsService/DeletePorts
+  methodType: unary
+  message: |
+    {
+      "switch_id": "site1-leaf1"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

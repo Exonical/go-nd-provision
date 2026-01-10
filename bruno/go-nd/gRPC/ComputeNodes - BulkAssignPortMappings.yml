@@ -1,0 +1,23 @@
+info:
+  name: ComputeNodes - BulkAssignPortMappings
+  type: grpc
+  seq: 35
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/BulkAssignPortMappings
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: |
+    {
+      "assignments": [
+        {
+          "switch_port_id": "fabric:MyFabric:SERIAL123:Ethernet1/1",
+          "node_id": "node-uuid-1",
+          "interface_id": "interface-uuid-1"
+        }
+      ]
+    }
+  auth: inherit

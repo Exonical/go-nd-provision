@@ -1,0 +1,14 @@
+info:
+  name: Jobs - List
+  type: grpc
+  seq: 2
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.JobsService/ListJobs
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: "{}"
+  auth: inherit

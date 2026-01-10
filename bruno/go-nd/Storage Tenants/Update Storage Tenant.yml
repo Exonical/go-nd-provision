@@ -1,0 +1,26 @@
+info:
+  name: Update Storage Tenant
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/storage-tenants/{{tenantKey}}"
+  auth: inherit
+  body:
+    type: json
+    json: |
+      {
+        "name": "Tenant A Updated",
+        "storage_network_name": "Storage_Net_TenantA_v2",
+        "storage_sg_id": 30002
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+vars:pre-request:
+  tenantKey: ""

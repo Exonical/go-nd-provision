@@ -1,0 +1,18 @@
+info:
+  name: Delete Storage Tenant
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/storage-tenants/{{tenantKey}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+vars:pre-request:
+  tenantKey: ""

@@ -1,0 +1,17 @@
+info:
+  name: Fabrics - SyncSwitches
+  type: grpc
+  seq: 24
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.FabricsService/SyncSwitches
+  methodType: unary
+  message: |
+    {
+      "fabric_id": "DevNet_VxLAN_Fabric"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

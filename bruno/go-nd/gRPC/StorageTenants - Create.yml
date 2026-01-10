@@ -1,0 +1,19 @@
+info:
+  name: StorageTenants - Create
+  type: grpc
+  seq: 42
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.StorageTenantsService/CreateStorageTenant
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: |
+    {
+      "key": "tenant-a",
+      "name": "Tenant A",
+      "storage_network_name": "Storage_Net_TenantA"
+    }
+  auth: inherit

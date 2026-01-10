@@ -52,13 +52,23 @@ func (v *ValkeyClient) AcquireLock(ctx context.Context, key string, value string
 // ReleaseLock safely releases a lock only if the value matches (we still own it)
 // This prevents releasing a lock that was acquired by another client after expiry
 func (v *ValkeyClient) ReleaseLock(ctx context.Context, key string, value string) error {
-	// Lua script: delete key only if value matches
+	// Try Lua script first: delete key only if value matches (atomic)
 	script := `if redis.call("get",KEYS[1]) == ARGV[1] then return redis.call("del",KEYS[1]) else return 0 end`
 	cmd := v.client.B().Eval().Script(script).Numkeys(1).Key(key).Arg(value).Build()
 	_, err := v.client.Do(ctx, cmd).ToInt64()
 	if err != nil {
-		// Fallback to simple delete if Lua not supported
-		return v.Delete(ctx, key)
+		// Fallback for NOPERM or Lua not supported: check-then-delete (not atomic but better than nothing)
+		currentValue, getErr := v.GetString(ctx, key)
+		if getErr != nil {
+			if errors.Is(getErr, ErrKeyNotFound) {
+				return nil // Lock already released/expired
+			}
+			return v.Delete(ctx, key) // Last resort: just delete
+		}
+		if currentValue == value {
+			return v.Delete(ctx, key)
+		}
+		return nil // Someone else owns the lock now
 	}
 	return nil
 }
@@ -190,7 +200,17 @@ func (v *ValkeyClient) IncrWithTTL(ctx context.Context, key string, ttl time.Dur
 	cmd := v.client.B().Eval().Script(script).Numkeys(1).Key(key).Arg(fmt.Sprintf("%d", ttl.Milliseconds())).Build()
 	result, err := v.client.Do(ctx, cmd).ToArray()
 	if err != nil {
-		return 0, 0, err
+		// Fallback for NOPERM: use separate INCR + conditional EXPIRE + PTTL
+		current, incrErr := v.Incr(ctx, key)
+		if incrErr != nil {
+			return 0, 0, incrErr
+		}
+		// Set TTL only on first increment
+		if current == 1 {
+			_ = v.Expire(ctx, key, ttl)
+		}
+		pttlDur, _ := v.PTTL(ctx, key)
+		return current, pttlDur, nil
 	}
 	if len(result) < 2 {
 		return 0, 0, fmt.Errorf("unexpected result from rate limit script")

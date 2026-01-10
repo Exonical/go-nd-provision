@@ -19,14 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ComputeNodesService_ListComputeNodes_FullMethodName  = "/go_nd.v1.ComputeNodesService/ListComputeNodes"
-	ComputeNodesService_GetComputeNode_FullMethodName    = "/go_nd.v1.ComputeNodesService/GetComputeNode"
-	ComputeNodesService_CreateComputeNode_FullMethodName = "/go_nd.v1.ComputeNodesService/CreateComputeNode"
-	ComputeNodesService_UpdateComputeNode_FullMethodName = "/go_nd.v1.ComputeNodesService/UpdateComputeNode"
-	ComputeNodesService_DeleteComputeNode_FullMethodName = "/go_nd.v1.ComputeNodesService/DeleteComputeNode"
-	ComputeNodesService_ListPortMappings_FullMethodName  = "/go_nd.v1.ComputeNodesService/ListPortMappings"
-	ComputeNodesService_AddPortMapping_FullMethodName    = "/go_nd.v1.ComputeNodesService/AddPortMapping"
-	ComputeNodesService_DeletePortMapping_FullMethodName = "/go_nd.v1.ComputeNodesService/DeletePortMapping"
+	ComputeNodesService_ListComputeNodes_FullMethodName       = "/go_nd.v1.ComputeNodesService/ListComputeNodes"
+	ComputeNodesService_GetComputeNode_FullMethodName         = "/go_nd.v1.ComputeNodesService/GetComputeNode"
+	ComputeNodesService_CreateComputeNode_FullMethodName      = "/go_nd.v1.ComputeNodesService/CreateComputeNode"
+	ComputeNodesService_UpdateComputeNode_FullMethodName      = "/go_nd.v1.ComputeNodesService/UpdateComputeNode"
+	ComputeNodesService_DeleteComputeNode_FullMethodName      = "/go_nd.v1.ComputeNodesService/DeleteComputeNode"
+	ComputeNodesService_ListPortMappings_FullMethodName       = "/go_nd.v1.ComputeNodesService/ListPortMappings"
+	ComputeNodesService_AddPortMapping_FullMethodName         = "/go_nd.v1.ComputeNodesService/AddPortMapping"
+	ComputeNodesService_DeletePortMapping_FullMethodName      = "/go_nd.v1.ComputeNodesService/DeletePortMapping"
+	ComputeNodesService_ListInterfaces_FullMethodName         = "/go_nd.v1.ComputeNodesService/ListInterfaces"
+	ComputeNodesService_CreateInterface_FullMethodName        = "/go_nd.v1.ComputeNodesService/CreateInterface"
+	ComputeNodesService_UpdateInterface_FullMethodName        = "/go_nd.v1.ComputeNodesService/UpdateInterface"
+	ComputeNodesService_DeleteInterface_FullMethodName        = "/go_nd.v1.ComputeNodesService/DeleteInterface"
+	ComputeNodesService_AssignPortToInterface_FullMethodName  = "/go_nd.v1.ComputeNodesService/AssignPortToInterface"
+	ComputeNodesService_BulkAssignPortMappings_FullMethodName = "/go_nd.v1.ComputeNodesService/BulkAssignPortMappings"
 )
 
 // ComputeNodesServiceClient is the client API for ComputeNodesService service.
@@ -51,6 +57,18 @@ type ComputeNodesServiceClient interface {
 	AddPortMapping(ctx context.Context, in *AddPortMappingRequest, opts ...grpc.CallOption) (*AddPortMappingResponse, error)
 	// DeletePortMapping removes a port mapping from a compute node
 	DeletePortMapping(ctx context.Context, in *DeletePortMappingRequest, opts ...grpc.CallOption) (*DeletePortMappingResponse, error)
+	// ListInterfaces lists interfaces for a compute node
+	ListInterfaces(ctx context.Context, in *ListInterfacesRequest, opts ...grpc.CallOption) (*ListInterfacesResponse, error)
+	// CreateInterface creates a new interface for a compute node
+	CreateInterface(ctx context.Context, in *CreateInterfaceRequest, opts ...grpc.CallOption) (*CreateInterfaceResponse, error)
+	// UpdateInterface updates an existing interface
+	UpdateInterface(ctx context.Context, in *UpdateInterfaceRequest, opts ...grpc.CallOption) (*UpdateInterfaceResponse, error)
+	// DeleteInterface deletes an interface
+	DeleteInterface(ctx context.Context, in *DeleteInterfaceRequest, opts ...grpc.CallOption) (*DeleteInterfaceResponse, error)
+	// AssignPortToInterface assigns a port mapping to an interface
+	AssignPortToInterface(ctx context.Context, in *AssignPortToInterfaceRequest, opts ...grpc.CallOption) (*AssignPortToInterfaceResponse, error)
+	// BulkAssignPortMappings assigns multiple ports to nodes/interfaces in one call
+	BulkAssignPortMappings(ctx context.Context, in *BulkAssignPortMappingsRequest, opts ...grpc.CallOption) (*BulkAssignPortMappingsResponse, error)
 }
 
 type computeNodesServiceClient struct {
@@ -141,6 +159,66 @@ func (c *computeNodesServiceClient) DeletePortMapping(ctx context.Context, in *D
 	return out, nil
 }
 
+func (c *computeNodesServiceClient) ListInterfaces(ctx context.Context, in *ListInterfacesRequest, opts ...grpc.CallOption) (*ListInterfacesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInterfacesResponse)
+	err := c.cc.Invoke(ctx, ComputeNodesService_ListInterfaces_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *computeNodesServiceClient) CreateInterface(ctx context.Context, in *CreateInterfaceRequest, opts ...grpc.CallOption) (*CreateInterfaceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateInterfaceResponse)
+	err := c.cc.Invoke(ctx, ComputeNodesService_CreateInterface_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *computeNodesServiceClient) UpdateInterface(ctx context.Context, in *UpdateInterfaceRequest, opts ...grpc.CallOption) (*UpdateInterfaceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateInterfaceResponse)
+	err := c.cc.Invoke(ctx, ComputeNodesService_UpdateInterface_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *computeNodesServiceClient) DeleteInterface(ctx context.Context, in *DeleteInterfaceRequest, opts ...grpc.CallOption) (*DeleteInterfaceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteInterfaceResponse)
+	err := c.cc.Invoke(ctx, ComputeNodesService_DeleteInterface_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *computeNodesServiceClient) AssignPortToInterface(ctx context.Context, in *AssignPortToInterfaceRequest, opts ...grpc.CallOption) (*AssignPortToInterfaceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AssignPortToInterfaceResponse)
+	err := c.cc.Invoke(ctx, ComputeNodesService_AssignPortToInterface_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *computeNodesServiceClient) BulkAssignPortMappings(ctx context.Context, in *BulkAssignPortMappingsRequest, opts ...grpc.CallOption) (*BulkAssignPortMappingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BulkAssignPortMappingsResponse)
+	err := c.cc.Invoke(ctx, ComputeNodesService_BulkAssignPortMappings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ComputeNodesServiceServer is the server API for ComputeNodesService service.
 // All implementations must embed UnimplementedComputeNodesServiceServer
 // for forward compatibility.
@@ -163,6 +241,18 @@ type ComputeNodesServiceServer interface {
 	AddPortMapping(context.Context, *AddPortMappingRequest) (*AddPortMappingResponse, error)
 	// DeletePortMapping removes a port mapping from a compute node
 	DeletePortMapping(context.Context, *DeletePortMappingRequest) (*DeletePortMappingResponse, error)
+	// ListInterfaces lists interfaces for a compute node
+	ListInterfaces(context.Context, *ListInterfacesRequest) (*ListInterfacesResponse, error)
+	// CreateInterface creates a new interface for a compute node
+	CreateInterface(context.Context, *CreateInterfaceRequest) (*CreateInterfaceResponse, error)
+	// UpdateInterface updates an existing interface
+	UpdateInterface(context.Context, *UpdateInterfaceRequest) (*UpdateInterfaceResponse, error)
+	// DeleteInterface deletes an interface
+	DeleteInterface(context.Context, *DeleteInterfaceRequest) (*DeleteInterfaceResponse, error)
+	// AssignPortToInterface assigns a port mapping to an interface
+	AssignPortToInterface(context.Context, *AssignPortToInterfaceRequest) (*AssignPortToInterfaceResponse, error)
+	// BulkAssignPortMappings assigns multiple ports to nodes/interfaces in one call
+	BulkAssignPortMappings(context.Context, *BulkAssignPortMappingsRequest) (*BulkAssignPortMappingsResponse, error)
 	mustEmbedUnimplementedComputeNodesServiceServer()
 }
 
@@ -196,6 +286,24 @@ func (UnimplementedComputeNodesServiceServer) AddPortMapping(context.Context, *A
 }
 func (UnimplementedComputeNodesServiceServer) DeletePortMapping(context.Context, *DeletePortMappingRequest) (*DeletePortMappingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeletePortMapping not implemented")
+}
+func (UnimplementedComputeNodesServiceServer) ListInterfaces(context.Context, *ListInterfacesRequest) (*ListInterfacesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInterfaces not implemented")
+}
+func (UnimplementedComputeNodesServiceServer) CreateInterface(context.Context, *CreateInterfaceRequest) (*CreateInterfaceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateInterface not implemented")
+}
+func (UnimplementedComputeNodesServiceServer) UpdateInterface(context.Context, *UpdateInterfaceRequest) (*UpdateInterfaceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateInterface not implemented")
+}
+func (UnimplementedComputeNodesServiceServer) DeleteInterface(context.Context, *DeleteInterfaceRequest) (*DeleteInterfaceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteInterface not implemented")
+}
+func (UnimplementedComputeNodesServiceServer) AssignPortToInterface(context.Context, *AssignPortToInterfaceRequest) (*AssignPortToInterfaceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AssignPortToInterface not implemented")
+}
+func (UnimplementedComputeNodesServiceServer) BulkAssignPortMappings(context.Context, *BulkAssignPortMappingsRequest) (*BulkAssignPortMappingsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BulkAssignPortMappings not implemented")
 }
 func (UnimplementedComputeNodesServiceServer) mustEmbedUnimplementedComputeNodesServiceServer() {}
 func (UnimplementedComputeNodesServiceServer) testEmbeddedByValue()                             {}
@@ -362,6 +470,114 @@ func _ComputeNodesService_DeletePortMapping_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ComputeNodesService_ListInterfaces_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInterfacesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ComputeNodesServiceServer).ListInterfaces(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ComputeNodesService_ListInterfaces_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ComputeNodesServiceServer).ListInterfaces(ctx, req.(*ListInterfacesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ComputeNodesService_CreateInterface_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateInterfaceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ComputeNodesServiceServer).CreateInterface(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ComputeNodesService_CreateInterface_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ComputeNodesServiceServer).CreateInterface(ctx, req.(*CreateInterfaceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ComputeNodesService_UpdateInterface_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateInterfaceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ComputeNodesServiceServer).UpdateInterface(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ComputeNodesService_UpdateInterface_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ComputeNodesServiceServer).UpdateInterface(ctx, req.(*UpdateInterfaceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ComputeNodesService_DeleteInterface_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteInterfaceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ComputeNodesServiceServer).DeleteInterface(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ComputeNodesService_DeleteInterface_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ComputeNodesServiceServer).DeleteInterface(ctx, req.(*DeleteInterfaceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ComputeNodesService_AssignPortToInterface_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AssignPortToInterfaceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ComputeNodesServiceServer).AssignPortToInterface(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ComputeNodesService_AssignPortToInterface_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ComputeNodesServiceServer).AssignPortToInterface(ctx, req.(*AssignPortToInterfaceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ComputeNodesService_BulkAssignPortMappings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BulkAssignPortMappingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ComputeNodesServiceServer).BulkAssignPortMappings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ComputeNodesService_BulkAssignPortMappings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ComputeNodesServiceServer).BulkAssignPortMappings(ctx, req.(*BulkAssignPortMappingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ComputeNodesService_ServiceDesc is the grpc.ServiceDesc for ComputeNodesService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -400,6 +616,30 @@ var ComputeNodesService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeletePortMapping",
 			Handler:    _ComputeNodesService_DeletePortMapping_Handler,
+		},
+		{
+			MethodName: "ListInterfaces",
+			Handler:    _ComputeNodesService_ListInterfaces_Handler,
+		},
+		{
+			MethodName: "CreateInterface",
+			Handler:    _ComputeNodesService_CreateInterface_Handler,
+		},
+		{
+			MethodName: "UpdateInterface",
+			Handler:    _ComputeNodesService_UpdateInterface_Handler,
+		},
+		{
+			MethodName: "DeleteInterface",
+			Handler:    _ComputeNodesService_DeleteInterface_Handler,
+		},
+		{
+			MethodName: "AssignPortToInterface",
+			Handler:    _ComputeNodesService_AssignPortToInterface_Handler,
+		},
+		{
+			MethodName: "BulkAssignPortMappings",
+			Handler:    _ComputeNodesService_BulkAssignPortMappings_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

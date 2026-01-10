@@ -1,0 +1,18 @@
+info:
+  name: Fabrics - Create
+  type: grpc
+  seq: 22
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.FabricsService/CreateFabric
+  methodType: unary
+  message: |
+    {
+      "name": "new-fabric",
+      "type": "vxlan"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

@@ -1,0 +1,19 @@
+info:
+  name: Delete Interface
+  type: http
+  seq: 11
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/compute-nodes/{{nodeId}}/interfaces/{{interfaceId}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+vars:pre-request:
+  nodeId: ""
+  interfaceId: ""

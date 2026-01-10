@@ -1,0 +1,19 @@
+info:
+  name: ComputeNodes - AssignPortToInterface
+  type: grpc
+  seq: 34
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/AssignPortToInterface
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: |
+    {
+      "compute_node_id": "{{nodeId}}",
+      "port_mapping_id": "{{mappingId}}",
+      "interface_id": "{{interfaceId}}"
+    }
+  auth: inherit

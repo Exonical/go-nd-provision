@@ -1,0 +1,26 @@
+info:
+  name: Assign Port to Interface
+  type: http
+  seq: 12
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/compute-nodes/{{nodeId}}/port-mappings/{{mappingId}}/interface"
+  auth: inherit
+  body:
+    type: json
+    json: |
+      {
+        "interface_id": "{{interfaceId}}"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+vars:pre-request:
+  nodeId: ""
+  mappingId: ""
+  interfaceId: ""

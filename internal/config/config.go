@@ -18,11 +18,21 @@ type Config struct {
 	Valkey         ValkeyConfig
 	NexusDashboard NexusDashboardConfig
 	VCenter        VCenterConfig
+	GRPC           GRPCConfig
 }
 
 type ServerConfig struct {
-	Port string
-	Mode string
+	Port       string
+	Mode       string
+	EnableHTTP bool // Enable HTTP/REST server
+	EnableGRPC bool // Enable gRPC server
+	EnableSync bool // Enable background sync worker
+}
+
+type GRPCConfig struct {
+	Port       string
+	AuthToken  string
+	Reflection bool
 }
 
 type DatabaseConfig struct {
@@ -73,8 +83,16 @@ type ValkeyConfig struct {
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port: getEnv("SERVER_PORT", "8080"),
-			Mode: getEnv("GIN_MODE", "debug"),
+			Port:       getEnv("SERVER_PORT", "8080"),
+			Mode:       getEnv("GIN_MODE", "debug"),
+			EnableHTTP: getEnvBool("ENABLE_HTTP", true),
+			EnableGRPC: getEnvBool("ENABLE_GRPC", false),
+			EnableSync: getEnvBool("ENABLE_SYNC", true),
+		},
+		GRPC: GRPCConfig{
+			Port:       getEnv("GRPC_PORT", "50051"),
+			AuthToken:  getEnv("GRPC_AUTH_TOKEN", ""),
+			Reflection: getEnvBool("GRPC_REFLECTION", true),
 		},
 		Database: DatabaseConfig{
 			Host:            getEnv("DB_HOST", "localhost"),

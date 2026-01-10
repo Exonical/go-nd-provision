@@ -1,0 +1,19 @@
+info:
+  name: StorageTenants - Update
+  type: grpc
+  seq: 43
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.StorageTenantsService/UpdateStorageTenant
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: |
+    {
+      "key": "{{tenantKey}}",
+      "name": "Tenant A Updated",
+      "storage_network_name": "Storage_Net_TenantA_v2"
+    }
+  auth: inherit

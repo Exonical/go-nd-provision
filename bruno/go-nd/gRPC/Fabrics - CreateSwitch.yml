@@ -1,0 +1,21 @@
+info:
+  name: Fabrics - CreateSwitch
+  type: grpc
+  seq: 28
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.FabricsService/CreateSwitch
+  methodType: unary
+  message: |
+    {
+      "fabric_id": "DevNet_VxLAN_Fabric",
+      "name": "new-switch",
+      "serial_number": "ABC123",
+      "model": "N9K-C9300v",
+      "ip_address": "10.0.0.1"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

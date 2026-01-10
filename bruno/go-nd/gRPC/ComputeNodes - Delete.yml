@@ -1,0 +1,17 @@
+info:
+  name: ComputeNodes - Delete
+  type: grpc
+  seq: 15
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/DeleteComputeNode
+  methodType: unary
+  message: |
+    {
+      "id": "node-id-here"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

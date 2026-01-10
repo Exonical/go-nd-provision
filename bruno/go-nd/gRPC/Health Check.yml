@@ -1,0 +1,11 @@
+info:
+  name: Health Check
+  type: grpc
+  seq: 1
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /grpc.health.v1.Health/Check
+  methodType: unary
+  message: "{}"
+  auth: inherit

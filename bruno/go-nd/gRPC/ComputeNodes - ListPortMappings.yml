@@ -1,0 +1,17 @@
+info:
+  name: ComputeNodes - ListPortMappings
+  type: grpc
+  seq: 16
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/ListPortMappings
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: |
+    {
+      "compute_node_id": "node-id-here"
+    }
+  auth: inherit

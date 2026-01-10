@@ -5,7 +5,7 @@ variables:
   - name: grpcUrl
     value: localhost:50051
   - name: grpcToken
-    value: your-secret-token
+    value: test123
   - name: fabricId
     value: DevNet_VxLAN_Fabric
   - name: switchId

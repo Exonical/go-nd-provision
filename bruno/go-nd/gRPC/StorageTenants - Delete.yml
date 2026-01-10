@@ -1,0 +1,17 @@
+info:
+  name: StorageTenants - Delete
+  type: grpc
+  seq: 44
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.StorageTenantsService/DeleteStorageTenant
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: |
+    {
+      "key": "{{tenantKey}}"
+    }
+  auth: inherit

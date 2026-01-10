@@ -1048,6 +1048,873 @@ func (*DeletePortMappingResponse) Descriptor() ([]byte, []int) {
 	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{17}
 }
 
+// ComputeNodeInterface represents a network interface on a compute node
+type ComputeNodeInterface struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ComputeNodeId string                 `protobuf:"bytes,2,opt,name=compute_node_id,json=computeNodeId,proto3" json:"compute_node_id,omitempty"`
+	Role          string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"` // "compute" or "storage"
+	Hostname      string                 `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	IpAddress     string                 `protobuf:"bytes,5,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	MacAddress    string                 `protobuf:"bytes,6,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ComputeNodeInterface) Reset() {
+	*x = ComputeNodeInterface{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComputeNodeInterface) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComputeNodeInterface) ProtoMessage() {}
+
+func (x *ComputeNodeInterface) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComputeNodeInterface.ProtoReflect.Descriptor instead.
+func (*ComputeNodeInterface) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ComputeNodeInterface) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ComputeNodeInterface) GetComputeNodeId() string {
+	if x != nil {
+		return x.ComputeNodeId
+	}
+	return ""
+}
+
+func (x *ComputeNodeInterface) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *ComputeNodeInterface) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *ComputeNodeInterface) GetIpAddress() string {
+	if x != nil {
+		return x.IpAddress
+	}
+	return ""
+}
+
+func (x *ComputeNodeInterface) GetMacAddress() string {
+	if x != nil {
+		return x.MacAddress
+	}
+	return ""
+}
+
+func (x *ComputeNodeInterface) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *ComputeNodeInterface) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+// ListInterfacesRequest lists interfaces for a compute node
+type ListInterfacesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ComputeNodeId string                 `protobuf:"bytes,1,opt,name=compute_node_id,json=computeNodeId,proto3" json:"compute_node_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListInterfacesRequest) Reset() {
+	*x = ListInterfacesRequest{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListInterfacesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListInterfacesRequest) ProtoMessage() {}
+
+func (x *ListInterfacesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListInterfacesRequest.ProtoReflect.Descriptor instead.
+func (*ListInterfacesRequest) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ListInterfacesRequest) GetComputeNodeId() string {
+	if x != nil {
+		return x.ComputeNodeId
+	}
+	return ""
+}
+
+// ListInterfacesResponse returns interfaces
+type ListInterfacesResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Interfaces    []*ComputeNodeInterface `protobuf:"bytes,1,rep,name=interfaces,proto3" json:"interfaces,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListInterfacesResponse) Reset() {
+	*x = ListInterfacesResponse{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListInterfacesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListInterfacesResponse) ProtoMessage() {}
+
+func (x *ListInterfacesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListInterfacesResponse.ProtoReflect.Descriptor instead.
+func (*ListInterfacesResponse) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ListInterfacesResponse) GetInterfaces() []*ComputeNodeInterface {
+	if x != nil {
+		return x.Interfaces
+	}
+	return nil
+}
+
+// CreateInterfaceRequest creates an interface
+type CreateInterfaceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ComputeNodeId string                 `protobuf:"bytes,1,opt,name=compute_node_id,json=computeNodeId,proto3" json:"compute_node_id,omitempty"`
+	Role          string                 `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"` // "compute" or "storage"
+	Hostname      string                 `protobuf:"bytes,3,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	IpAddress     string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	MacAddress    string                 `protobuf:"bytes,5,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateInterfaceRequest) Reset() {
+	*x = CreateInterfaceRequest{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateInterfaceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateInterfaceRequest) ProtoMessage() {}
+
+func (x *CreateInterfaceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateInterfaceRequest.ProtoReflect.Descriptor instead.
+func (*CreateInterfaceRequest) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CreateInterfaceRequest) GetComputeNodeId() string {
+	if x != nil {
+		return x.ComputeNodeId
+	}
+	return ""
+}
+
+func (x *CreateInterfaceRequest) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *CreateInterfaceRequest) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *CreateInterfaceRequest) GetIpAddress() string {
+	if x != nil {
+		return x.IpAddress
+	}
+	return ""
+}
+
+func (x *CreateInterfaceRequest) GetMacAddress() string {
+	if x != nil {
+		return x.MacAddress
+	}
+	return ""
+}
+
+// CreateInterfaceResponse returns the created interface
+type CreateInterfaceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Interface     *ComputeNodeInterface  `protobuf:"bytes,1,opt,name=interface,proto3" json:"interface,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateInterfaceResponse) Reset() {
+	*x = CreateInterfaceResponse{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateInterfaceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateInterfaceResponse) ProtoMessage() {}
+
+func (x *CreateInterfaceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateInterfaceResponse.ProtoReflect.Descriptor instead.
+func (*CreateInterfaceResponse) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *CreateInterfaceResponse) GetInterface() *ComputeNodeInterface {
+	if x != nil {
+		return x.Interface
+	}
+	return nil
+}
+
+// UpdateInterfaceRequest updates an interface
+type UpdateInterfaceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ComputeNodeId string                 `protobuf:"bytes,2,opt,name=compute_node_id,json=computeNodeId,proto3" json:"compute_node_id,omitempty"`
+	Hostname      string                 `protobuf:"bytes,3,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	IpAddress     string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	MacAddress    string                 `protobuf:"bytes,5,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateInterfaceRequest) Reset() {
+	*x = UpdateInterfaceRequest{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateInterfaceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateInterfaceRequest) ProtoMessage() {}
+
+func (x *UpdateInterfaceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateInterfaceRequest.ProtoReflect.Descriptor instead.
+func (*UpdateInterfaceRequest) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UpdateInterfaceRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateInterfaceRequest) GetComputeNodeId() string {
+	if x != nil {
+		return x.ComputeNodeId
+	}
+	return ""
+}
+
+func (x *UpdateInterfaceRequest) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *UpdateInterfaceRequest) GetIpAddress() string {
+	if x != nil {
+		return x.IpAddress
+	}
+	return ""
+}
+
+func (x *UpdateInterfaceRequest) GetMacAddress() string {
+	if x != nil {
+		return x.MacAddress
+	}
+	return ""
+}
+
+// UpdateInterfaceResponse returns the updated interface
+type UpdateInterfaceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Interface     *ComputeNodeInterface  `protobuf:"bytes,1,opt,name=interface,proto3" json:"interface,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateInterfaceResponse) Reset() {
+	*x = UpdateInterfaceResponse{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateInterfaceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateInterfaceResponse) ProtoMessage() {}
+
+func (x *UpdateInterfaceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateInterfaceResponse.ProtoReflect.Descriptor instead.
+func (*UpdateInterfaceResponse) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *UpdateInterfaceResponse) GetInterface() *ComputeNodeInterface {
+	if x != nil {
+		return x.Interface
+	}
+	return nil
+}
+
+// DeleteInterfaceRequest deletes an interface
+type DeleteInterfaceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ComputeNodeId string                 `protobuf:"bytes,2,opt,name=compute_node_id,json=computeNodeId,proto3" json:"compute_node_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteInterfaceRequest) Reset() {
+	*x = DeleteInterfaceRequest{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteInterfaceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteInterfaceRequest) ProtoMessage() {}
+
+func (x *DeleteInterfaceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteInterfaceRequest.ProtoReflect.Descriptor instead.
+func (*DeleteInterfaceRequest) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *DeleteInterfaceRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DeleteInterfaceRequest) GetComputeNodeId() string {
+	if x != nil {
+		return x.ComputeNodeId
+	}
+	return ""
+}
+
+// DeleteInterfaceResponse confirms deletion
+type DeleteInterfaceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteInterfaceResponse) Reset() {
+	*x = DeleteInterfaceResponse{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteInterfaceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteInterfaceResponse) ProtoMessage() {}
+
+func (x *DeleteInterfaceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteInterfaceResponse.ProtoReflect.Descriptor instead.
+func (*DeleteInterfaceResponse) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{26}
+}
+
+// AssignPortToInterfaceRequest assigns a port mapping to an interface
+type AssignPortToInterfaceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ComputeNodeId string                 `protobuf:"bytes,1,opt,name=compute_node_id,json=computeNodeId,proto3" json:"compute_node_id,omitempty"`
+	PortMappingId string                 `protobuf:"bytes,2,opt,name=port_mapping_id,json=portMappingId,proto3" json:"port_mapping_id,omitempty"`
+	InterfaceId   string                 `protobuf:"bytes,3,opt,name=interface_id,json=interfaceId,proto3" json:"interface_id,omitempty"` // Empty to unassign
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AssignPortToInterfaceRequest) Reset() {
+	*x = AssignPortToInterfaceRequest{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssignPortToInterfaceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssignPortToInterfaceRequest) ProtoMessage() {}
+
+func (x *AssignPortToInterfaceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssignPortToInterfaceRequest.ProtoReflect.Descriptor instead.
+func (*AssignPortToInterfaceRequest) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *AssignPortToInterfaceRequest) GetComputeNodeId() string {
+	if x != nil {
+		return x.ComputeNodeId
+	}
+	return ""
+}
+
+func (x *AssignPortToInterfaceRequest) GetPortMappingId() string {
+	if x != nil {
+		return x.PortMappingId
+	}
+	return ""
+}
+
+func (x *AssignPortToInterfaceRequest) GetInterfaceId() string {
+	if x != nil {
+		return x.InterfaceId
+	}
+	return ""
+}
+
+// AssignPortToInterfaceResponse returns the updated port mapping
+type AssignPortToInterfaceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PortMapping   *PortMapping           `protobuf:"bytes,1,opt,name=port_mapping,json=portMapping,proto3" json:"port_mapping,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AssignPortToInterfaceResponse) Reset() {
+	*x = AssignPortToInterfaceResponse{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssignPortToInterfaceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssignPortToInterfaceResponse) ProtoMessage() {}
+
+func (x *AssignPortToInterfaceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssignPortToInterfaceResponse.ProtoReflect.Descriptor instead.
+func (*AssignPortToInterfaceResponse) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *AssignPortToInterfaceResponse) GetPortMapping() *PortMapping {
+	if x != nil {
+		return x.PortMapping
+	}
+	return nil
+}
+
+// BulkPortAssignment represents a single port assignment in a bulk operation
+type BulkPortAssignment struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SwitchPortId  string                 `protobuf:"bytes,1,opt,name=switch_port_id,json=switchPortId,proto3" json:"switch_port_id,omitempty"`
+	NodeId        string                 `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`                // Empty to unassign
+	InterfaceId   string                 `protobuf:"bytes,3,opt,name=interface_id,json=interfaceId,proto3" json:"interface_id,omitempty"` // Empty for no interface
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BulkPortAssignment) Reset() {
+	*x = BulkPortAssignment{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkPortAssignment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkPortAssignment) ProtoMessage() {}
+
+func (x *BulkPortAssignment) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkPortAssignment.ProtoReflect.Descriptor instead.
+func (*BulkPortAssignment) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *BulkPortAssignment) GetSwitchPortId() string {
+	if x != nil {
+		return x.SwitchPortId
+	}
+	return ""
+}
+
+func (x *BulkPortAssignment) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *BulkPortAssignment) GetInterfaceId() string {
+	if x != nil {
+		return x.InterfaceId
+	}
+	return ""
+}
+
+// BulkAssignmentResult represents the result of a single assignment
+type BulkAssignmentResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SwitchPortId  string                 `protobuf:"bytes,1,opt,name=switch_port_id,json=switchPortId,proto3" json:"switch_port_id,omitempty"`
+	Success       bool                   `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
+	Action        string                 `protobuf:"bytes,3,opt,name=action,proto3" json:"action,omitempty"` // "created", "updated", "deleted", "no_change"
+	MappingId     string                 `protobuf:"bytes,4,opt,name=mapping_id,json=mappingId,proto3" json:"mapping_id,omitempty"`
+	Error         string                 `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BulkAssignmentResult) Reset() {
+	*x = BulkAssignmentResult{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkAssignmentResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkAssignmentResult) ProtoMessage() {}
+
+func (x *BulkAssignmentResult) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkAssignmentResult.ProtoReflect.Descriptor instead.
+func (*BulkAssignmentResult) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *BulkAssignmentResult) GetSwitchPortId() string {
+	if x != nil {
+		return x.SwitchPortId
+	}
+	return ""
+}
+
+func (x *BulkAssignmentResult) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *BulkAssignmentResult) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *BulkAssignmentResult) GetMappingId() string {
+	if x != nil {
+		return x.MappingId
+	}
+	return ""
+}
+
+func (x *BulkAssignmentResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// BulkAssignPortMappingsRequest assigns multiple ports
+type BulkAssignPortMappingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Assignments   []*BulkPortAssignment  `protobuf:"bytes,1,rep,name=assignments,proto3" json:"assignments,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BulkAssignPortMappingsRequest) Reset() {
+	*x = BulkAssignPortMappingsRequest{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkAssignPortMappingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkAssignPortMappingsRequest) ProtoMessage() {}
+
+func (x *BulkAssignPortMappingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkAssignPortMappingsRequest.ProtoReflect.Descriptor instead.
+func (*BulkAssignPortMappingsRequest) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *BulkAssignPortMappingsRequest) GetAssignments() []*BulkPortAssignment {
+	if x != nil {
+		return x.Assignments
+	}
+	return nil
+}
+
+// BulkAssignPortMappingsResponse returns results
+type BulkAssignPortMappingsResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Results       []*BulkAssignmentResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	Total         int32                   `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BulkAssignPortMappingsResponse) Reset() {
+	*x = BulkAssignPortMappingsResponse{}
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkAssignPortMappingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkAssignPortMappingsResponse) ProtoMessage() {}
+
+func (x *BulkAssignPortMappingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_go_nd_v1_compute_nodes_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkAssignPortMappingsResponse.ProtoReflect.Descriptor instead.
+func (*BulkAssignPortMappingsResponse) Descriptor() ([]byte, []int) {
+	return file_go_nd_v1_compute_nodes_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *BulkAssignPortMappingsResponse) GetResults() []*BulkAssignmentResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *BulkAssignPortMappingsResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 var File_go_nd_v1_compute_nodes_proto protoreflect.FileDescriptor
 
 const file_go_nd_v1_compute_nodes_proto_rawDesc = "" +
@@ -1129,7 +1996,73 @@ const file_go_nd_v1_compute_nodes_proto_rawDesc = "" +
 	"\fport_mapping\x18\x01 \x01(\v2\x15.go_nd.v1.PortMappingR\vportMapping\"*\n" +
 	"\x18DeletePortMappingRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1b\n" +
-	"\x19DeletePortMappingResponse2\xed\x05\n" +
+	"\x19DeletePortMappingResponse\"\xb4\x02\n" +
+	"\x14ComputeNodeInterface\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12&\n" +
+	"\x0fcompute_node_id\x18\x02 \x01(\tR\rcomputeNodeId\x12\x12\n" +
+	"\x04role\x18\x03 \x01(\tR\x04role\x12\x1a\n" +
+	"\bhostname\x18\x04 \x01(\tR\bhostname\x12\x1d\n" +
+	"\n" +
+	"ip_address\x18\x05 \x01(\tR\tipAddress\x12\x1f\n" +
+	"\vmac_address\x18\x06 \x01(\tR\n" +
+	"macAddress\x129\n" +
+	"\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"?\n" +
+	"\x15ListInterfacesRequest\x12&\n" +
+	"\x0fcompute_node_id\x18\x01 \x01(\tR\rcomputeNodeId\"X\n" +
+	"\x16ListInterfacesResponse\x12>\n" +
+	"\n" +
+	"interfaces\x18\x01 \x03(\v2\x1e.go_nd.v1.ComputeNodeInterfaceR\n" +
+	"interfaces\"\xb0\x01\n" +
+	"\x16CreateInterfaceRequest\x12&\n" +
+	"\x0fcompute_node_id\x18\x01 \x01(\tR\rcomputeNodeId\x12\x12\n" +
+	"\x04role\x18\x02 \x01(\tR\x04role\x12\x1a\n" +
+	"\bhostname\x18\x03 \x01(\tR\bhostname\x12\x1d\n" +
+	"\n" +
+	"ip_address\x18\x04 \x01(\tR\tipAddress\x12\x1f\n" +
+	"\vmac_address\x18\x05 \x01(\tR\n" +
+	"macAddress\"W\n" +
+	"\x17CreateInterfaceResponse\x12<\n" +
+	"\tinterface\x18\x01 \x01(\v2\x1e.go_nd.v1.ComputeNodeInterfaceR\tinterface\"\xac\x01\n" +
+	"\x16UpdateInterfaceRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12&\n" +
+	"\x0fcompute_node_id\x18\x02 \x01(\tR\rcomputeNodeId\x12\x1a\n" +
+	"\bhostname\x18\x03 \x01(\tR\bhostname\x12\x1d\n" +
+	"\n" +
+	"ip_address\x18\x04 \x01(\tR\tipAddress\x12\x1f\n" +
+	"\vmac_address\x18\x05 \x01(\tR\n" +
+	"macAddress\"W\n" +
+	"\x17UpdateInterfaceResponse\x12<\n" +
+	"\tinterface\x18\x01 \x01(\v2\x1e.go_nd.v1.ComputeNodeInterfaceR\tinterface\"P\n" +
+	"\x16DeleteInterfaceRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12&\n" +
+	"\x0fcompute_node_id\x18\x02 \x01(\tR\rcomputeNodeId\"\x19\n" +
+	"\x17DeleteInterfaceResponse\"\x91\x01\n" +
+	"\x1cAssignPortToInterfaceRequest\x12&\n" +
+	"\x0fcompute_node_id\x18\x01 \x01(\tR\rcomputeNodeId\x12&\n" +
+	"\x0fport_mapping_id\x18\x02 \x01(\tR\rportMappingId\x12!\n" +
+	"\finterface_id\x18\x03 \x01(\tR\vinterfaceId\"Y\n" +
+	"\x1dAssignPortToInterfaceResponse\x128\n" +
+	"\fport_mapping\x18\x01 \x01(\v2\x15.go_nd.v1.PortMappingR\vportMapping\"v\n" +
+	"\x12BulkPortAssignment\x12$\n" +
+	"\x0eswitch_port_id\x18\x01 \x01(\tR\fswitchPortId\x12\x17\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12!\n" +
+	"\finterface_id\x18\x03 \x01(\tR\vinterfaceId\"\xa3\x01\n" +
+	"\x14BulkAssignmentResult\x12$\n" +
+	"\x0eswitch_port_id\x18\x01 \x01(\tR\fswitchPortId\x12\x18\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\x12\x16\n" +
+	"\x06action\x18\x03 \x01(\tR\x06action\x12\x1d\n" +
+	"\n" +
+	"mapping_id\x18\x04 \x01(\tR\tmappingId\x12\x14\n" +
+	"\x05error\x18\x05 \x01(\tR\x05error\"_\n" +
+	"\x1dBulkAssignPortMappingsRequest\x12>\n" +
+	"\vassignments\x18\x01 \x03(\v2\x1c.go_nd.v1.BulkPortAssignmentR\vassignments\"p\n" +
+	"\x1eBulkAssignPortMappingsResponse\x128\n" +
+	"\aresults\x18\x01 \x03(\v2\x1e.go_nd.v1.BulkAssignmentResultR\aresults\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\xa1\n" +
+	"\n" +
 	"\x13ComputeNodesService\x12Y\n" +
 	"\x10ListComputeNodes\x12!.go_nd.v1.ListComputeNodesRequest\x1a\".go_nd.v1.ListComputeNodesResponse\x12S\n" +
 	"\x0eGetComputeNode\x12\x1f.go_nd.v1.GetComputeNodeRequest\x1a .go_nd.v1.GetComputeNodeResponse\x12\\\n" +
@@ -1138,7 +2071,13 @@ const file_go_nd_v1_compute_nodes_proto_rawDesc = "" +
 	"\x11DeleteComputeNode\x12\".go_nd.v1.DeleteComputeNodeRequest\x1a#.go_nd.v1.DeleteComputeNodeResponse\x12Y\n" +
 	"\x10ListPortMappings\x12!.go_nd.v1.ListPortMappingsRequest\x1a\".go_nd.v1.ListPortMappingsResponse\x12S\n" +
 	"\x0eAddPortMapping\x12\x1f.go_nd.v1.AddPortMappingRequest\x1a .go_nd.v1.AddPortMappingResponse\x12\\\n" +
-	"\x11DeletePortMapping\x12\".go_nd.v1.DeletePortMappingRequest\x1a#.go_nd.v1.DeletePortMappingResponseB\x8d\x01\n" +
+	"\x11DeletePortMapping\x12\".go_nd.v1.DeletePortMappingRequest\x1a#.go_nd.v1.DeletePortMappingResponse\x12S\n" +
+	"\x0eListInterfaces\x12\x1f.go_nd.v1.ListInterfacesRequest\x1a .go_nd.v1.ListInterfacesResponse\x12V\n" +
+	"\x0fCreateInterface\x12 .go_nd.v1.CreateInterfaceRequest\x1a!.go_nd.v1.CreateInterfaceResponse\x12V\n" +
+	"\x0fUpdateInterface\x12 .go_nd.v1.UpdateInterfaceRequest\x1a!.go_nd.v1.UpdateInterfaceResponse\x12V\n" +
+	"\x0fDeleteInterface\x12 .go_nd.v1.DeleteInterfaceRequest\x1a!.go_nd.v1.DeleteInterfaceResponse\x12h\n" +
+	"\x15AssignPortToInterface\x12&.go_nd.v1.AssignPortToInterfaceRequest\x1a'.go_nd.v1.AssignPortToInterfaceResponse\x12k\n" +
+	"\x16BulkAssignPortMappings\x12'.go_nd.v1.BulkAssignPortMappingsRequest\x1a(.go_nd.v1.BulkAssignPortMappingsResponseB\x8d\x01\n" +
 	"\fcom.go_nd.v1B\x11ComputeNodesProtoP\x01Z-github.com/banglin/go-nd/gen/go_nd/v1;go_ndv1\xa2\x02\x03GXX\xaa\x02\aGoNd.V1\xca\x02\aGoNd\\V1\xe2\x02\x13GoNd\\V1\\GPBMetadata\xea\x02\bGoNd::V1b\x06proto3"
 
 var (
@@ -1153,64 +2092,99 @@ func file_go_nd_v1_compute_nodes_proto_rawDescGZIP() []byte {
 	return file_go_nd_v1_compute_nodes_proto_rawDescData
 }
 
-var file_go_nd_v1_compute_nodes_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_go_nd_v1_compute_nodes_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_go_nd_v1_compute_nodes_proto_goTypes = []any{
-	(*ComputeNode)(nil),               // 0: go_nd.v1.ComputeNode
-	(*PortMapping)(nil),               // 1: go_nd.v1.PortMapping
-	(*ListComputeNodesRequest)(nil),   // 2: go_nd.v1.ListComputeNodesRequest
-	(*ListComputeNodesResponse)(nil),  // 3: go_nd.v1.ListComputeNodesResponse
-	(*GetComputeNodeRequest)(nil),     // 4: go_nd.v1.GetComputeNodeRequest
-	(*GetComputeNodeResponse)(nil),    // 5: go_nd.v1.GetComputeNodeResponse
-	(*CreateComputeNodeRequest)(nil),  // 6: go_nd.v1.CreateComputeNodeRequest
-	(*CreateComputeNodeResponse)(nil), // 7: go_nd.v1.CreateComputeNodeResponse
-	(*UpdateComputeNodeRequest)(nil),  // 8: go_nd.v1.UpdateComputeNodeRequest
-	(*UpdateComputeNodeResponse)(nil), // 9: go_nd.v1.UpdateComputeNodeResponse
-	(*DeleteComputeNodeRequest)(nil),  // 10: go_nd.v1.DeleteComputeNodeRequest
-	(*DeleteComputeNodeResponse)(nil), // 11: go_nd.v1.DeleteComputeNodeResponse
-	(*ListPortMappingsRequest)(nil),   // 12: go_nd.v1.ListPortMappingsRequest
-	(*ListPortMappingsResponse)(nil),  // 13: go_nd.v1.ListPortMappingsResponse
-	(*AddPortMappingRequest)(nil),     // 14: go_nd.v1.AddPortMappingRequest
-	(*AddPortMappingResponse)(nil),    // 15: go_nd.v1.AddPortMappingResponse
-	(*DeletePortMappingRequest)(nil),  // 16: go_nd.v1.DeletePortMappingRequest
-	(*DeletePortMappingResponse)(nil), // 17: go_nd.v1.DeletePortMappingResponse
-	(*timestamppb.Timestamp)(nil),     // 18: google.protobuf.Timestamp
-	(*PaginationRequest)(nil),         // 19: go_nd.v1.PaginationRequest
-	(*PaginationResponse)(nil),        // 20: go_nd.v1.PaginationResponse
+	(*ComputeNode)(nil),                    // 0: go_nd.v1.ComputeNode
+	(*PortMapping)(nil),                    // 1: go_nd.v1.PortMapping
+	(*ListComputeNodesRequest)(nil),        // 2: go_nd.v1.ListComputeNodesRequest
+	(*ListComputeNodesResponse)(nil),       // 3: go_nd.v1.ListComputeNodesResponse
+	(*GetComputeNodeRequest)(nil),          // 4: go_nd.v1.GetComputeNodeRequest
+	(*GetComputeNodeResponse)(nil),         // 5: go_nd.v1.GetComputeNodeResponse
+	(*CreateComputeNodeRequest)(nil),       // 6: go_nd.v1.CreateComputeNodeRequest
+	(*CreateComputeNodeResponse)(nil),      // 7: go_nd.v1.CreateComputeNodeResponse
+	(*UpdateComputeNodeRequest)(nil),       // 8: go_nd.v1.UpdateComputeNodeRequest
+	(*UpdateComputeNodeResponse)(nil),      // 9: go_nd.v1.UpdateComputeNodeResponse
+	(*DeleteComputeNodeRequest)(nil),       // 10: go_nd.v1.DeleteComputeNodeRequest
+	(*DeleteComputeNodeResponse)(nil),      // 11: go_nd.v1.DeleteComputeNodeResponse
+	(*ListPortMappingsRequest)(nil),        // 12: go_nd.v1.ListPortMappingsRequest
+	(*ListPortMappingsResponse)(nil),       // 13: go_nd.v1.ListPortMappingsResponse
+	(*AddPortMappingRequest)(nil),          // 14: go_nd.v1.AddPortMappingRequest
+	(*AddPortMappingResponse)(nil),         // 15: go_nd.v1.AddPortMappingResponse
+	(*DeletePortMappingRequest)(nil),       // 16: go_nd.v1.DeletePortMappingRequest
+	(*DeletePortMappingResponse)(nil),      // 17: go_nd.v1.DeletePortMappingResponse
+	(*ComputeNodeInterface)(nil),           // 18: go_nd.v1.ComputeNodeInterface
+	(*ListInterfacesRequest)(nil),          // 19: go_nd.v1.ListInterfacesRequest
+	(*ListInterfacesResponse)(nil),         // 20: go_nd.v1.ListInterfacesResponse
+	(*CreateInterfaceRequest)(nil),         // 21: go_nd.v1.CreateInterfaceRequest
+	(*CreateInterfaceResponse)(nil),        // 22: go_nd.v1.CreateInterfaceResponse
+	(*UpdateInterfaceRequest)(nil),         // 23: go_nd.v1.UpdateInterfaceRequest
+	(*UpdateInterfaceResponse)(nil),        // 24: go_nd.v1.UpdateInterfaceResponse
+	(*DeleteInterfaceRequest)(nil),         // 25: go_nd.v1.DeleteInterfaceRequest
+	(*DeleteInterfaceResponse)(nil),        // 26: go_nd.v1.DeleteInterfaceResponse
+	(*AssignPortToInterfaceRequest)(nil),   // 27: go_nd.v1.AssignPortToInterfaceRequest
+	(*AssignPortToInterfaceResponse)(nil),  // 28: go_nd.v1.AssignPortToInterfaceResponse
+	(*BulkPortAssignment)(nil),             // 29: go_nd.v1.BulkPortAssignment
+	(*BulkAssignmentResult)(nil),           // 30: go_nd.v1.BulkAssignmentResult
+	(*BulkAssignPortMappingsRequest)(nil),  // 31: go_nd.v1.BulkAssignPortMappingsRequest
+	(*BulkAssignPortMappingsResponse)(nil), // 32: go_nd.v1.BulkAssignPortMappingsResponse
+	(*timestamppb.Timestamp)(nil),          // 33: google.protobuf.Timestamp
+	(*PaginationRequest)(nil),              // 34: go_nd.v1.PaginationRequest
+	(*PaginationResponse)(nil),             // 35: go_nd.v1.PaginationResponse
 }
 var file_go_nd_v1_compute_nodes_proto_depIdxs = []int32{
-	18, // 0: go_nd.v1.ComputeNode.created_at:type_name -> google.protobuf.Timestamp
-	18, // 1: go_nd.v1.ComputeNode.updated_at:type_name -> google.protobuf.Timestamp
+	33, // 0: go_nd.v1.ComputeNode.created_at:type_name -> google.protobuf.Timestamp
+	33, // 1: go_nd.v1.ComputeNode.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 2: go_nd.v1.ComputeNode.port_mappings:type_name -> go_nd.v1.PortMapping
-	18, // 3: go_nd.v1.PortMapping.created_at:type_name -> google.protobuf.Timestamp
-	19, // 4: go_nd.v1.ListComputeNodesRequest.pagination:type_name -> go_nd.v1.PaginationRequest
+	33, // 3: go_nd.v1.PortMapping.created_at:type_name -> google.protobuf.Timestamp
+	34, // 4: go_nd.v1.ListComputeNodesRequest.pagination:type_name -> go_nd.v1.PaginationRequest
 	0,  // 5: go_nd.v1.ListComputeNodesResponse.compute_nodes:type_name -> go_nd.v1.ComputeNode
-	20, // 6: go_nd.v1.ListComputeNodesResponse.pagination:type_name -> go_nd.v1.PaginationResponse
+	35, // 6: go_nd.v1.ListComputeNodesResponse.pagination:type_name -> go_nd.v1.PaginationResponse
 	0,  // 7: go_nd.v1.GetComputeNodeResponse.compute_node:type_name -> go_nd.v1.ComputeNode
 	0,  // 8: go_nd.v1.CreateComputeNodeResponse.compute_node:type_name -> go_nd.v1.ComputeNode
 	0,  // 9: go_nd.v1.UpdateComputeNodeResponse.compute_node:type_name -> go_nd.v1.ComputeNode
 	1,  // 10: go_nd.v1.ListPortMappingsResponse.port_mappings:type_name -> go_nd.v1.PortMapping
 	1,  // 11: go_nd.v1.AddPortMappingResponse.port_mapping:type_name -> go_nd.v1.PortMapping
-	2,  // 12: go_nd.v1.ComputeNodesService.ListComputeNodes:input_type -> go_nd.v1.ListComputeNodesRequest
-	4,  // 13: go_nd.v1.ComputeNodesService.GetComputeNode:input_type -> go_nd.v1.GetComputeNodeRequest
-	6,  // 14: go_nd.v1.ComputeNodesService.CreateComputeNode:input_type -> go_nd.v1.CreateComputeNodeRequest
-	8,  // 15: go_nd.v1.ComputeNodesService.UpdateComputeNode:input_type -> go_nd.v1.UpdateComputeNodeRequest
-	10, // 16: go_nd.v1.ComputeNodesService.DeleteComputeNode:input_type -> go_nd.v1.DeleteComputeNodeRequest
-	12, // 17: go_nd.v1.ComputeNodesService.ListPortMappings:input_type -> go_nd.v1.ListPortMappingsRequest
-	14, // 18: go_nd.v1.ComputeNodesService.AddPortMapping:input_type -> go_nd.v1.AddPortMappingRequest
-	16, // 19: go_nd.v1.ComputeNodesService.DeletePortMapping:input_type -> go_nd.v1.DeletePortMappingRequest
-	3,  // 20: go_nd.v1.ComputeNodesService.ListComputeNodes:output_type -> go_nd.v1.ListComputeNodesResponse
-	5,  // 21: go_nd.v1.ComputeNodesService.GetComputeNode:output_type -> go_nd.v1.GetComputeNodeResponse
-	7,  // 22: go_nd.v1.ComputeNodesService.CreateComputeNode:output_type -> go_nd.v1.CreateComputeNodeResponse
-	9,  // 23: go_nd.v1.ComputeNodesService.UpdateComputeNode:output_type -> go_nd.v1.UpdateComputeNodeResponse
-	11, // 24: go_nd.v1.ComputeNodesService.DeleteComputeNode:output_type -> go_nd.v1.DeleteComputeNodeResponse
-	13, // 25: go_nd.v1.ComputeNodesService.ListPortMappings:output_type -> go_nd.v1.ListPortMappingsResponse
-	15, // 26: go_nd.v1.ComputeNodesService.AddPortMapping:output_type -> go_nd.v1.AddPortMappingResponse
-	17, // 27: go_nd.v1.ComputeNodesService.DeletePortMapping:output_type -> go_nd.v1.DeletePortMappingResponse
-	20, // [20:28] is the sub-list for method output_type
-	12, // [12:20] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	33, // 12: go_nd.v1.ComputeNodeInterface.created_at:type_name -> google.protobuf.Timestamp
+	33, // 13: go_nd.v1.ComputeNodeInterface.updated_at:type_name -> google.protobuf.Timestamp
+	18, // 14: go_nd.v1.ListInterfacesResponse.interfaces:type_name -> go_nd.v1.ComputeNodeInterface
+	18, // 15: go_nd.v1.CreateInterfaceResponse.interface:type_name -> go_nd.v1.ComputeNodeInterface
+	18, // 16: go_nd.v1.UpdateInterfaceResponse.interface:type_name -> go_nd.v1.ComputeNodeInterface
+	1,  // 17: go_nd.v1.AssignPortToInterfaceResponse.port_mapping:type_name -> go_nd.v1.PortMapping
+	29, // 18: go_nd.v1.BulkAssignPortMappingsRequest.assignments:type_name -> go_nd.v1.BulkPortAssignment
+	30, // 19: go_nd.v1.BulkAssignPortMappingsResponse.results:type_name -> go_nd.v1.BulkAssignmentResult
+	2,  // 20: go_nd.v1.ComputeNodesService.ListComputeNodes:input_type -> go_nd.v1.ListComputeNodesRequest
+	4,  // 21: go_nd.v1.ComputeNodesService.GetComputeNode:input_type -> go_nd.v1.GetComputeNodeRequest
+	6,  // 22: go_nd.v1.ComputeNodesService.CreateComputeNode:input_type -> go_nd.v1.CreateComputeNodeRequest
+	8,  // 23: go_nd.v1.ComputeNodesService.UpdateComputeNode:input_type -> go_nd.v1.UpdateComputeNodeRequest
+	10, // 24: go_nd.v1.ComputeNodesService.DeleteComputeNode:input_type -> go_nd.v1.DeleteComputeNodeRequest
+	12, // 25: go_nd.v1.ComputeNodesService.ListPortMappings:input_type -> go_nd.v1.ListPortMappingsRequest
+	14, // 26: go_nd.v1.ComputeNodesService.AddPortMapping:input_type -> go_nd.v1.AddPortMappingRequest
+	16, // 27: go_nd.v1.ComputeNodesService.DeletePortMapping:input_type -> go_nd.v1.DeletePortMappingRequest
+	19, // 28: go_nd.v1.ComputeNodesService.ListInterfaces:input_type -> go_nd.v1.ListInterfacesRequest
+	21, // 29: go_nd.v1.ComputeNodesService.CreateInterface:input_type -> go_nd.v1.CreateInterfaceRequest
+	23, // 30: go_nd.v1.ComputeNodesService.UpdateInterface:input_type -> go_nd.v1.UpdateInterfaceRequest
+	25, // 31: go_nd.v1.ComputeNodesService.DeleteInterface:input_type -> go_nd.v1.DeleteInterfaceRequest
+	27, // 32: go_nd.v1.ComputeNodesService.AssignPortToInterface:input_type -> go_nd.v1.AssignPortToInterfaceRequest
+	31, // 33: go_nd.v1.ComputeNodesService.BulkAssignPortMappings:input_type -> go_nd.v1.BulkAssignPortMappingsRequest
+	3,  // 34: go_nd.v1.ComputeNodesService.ListComputeNodes:output_type -> go_nd.v1.ListComputeNodesResponse
+	5,  // 35: go_nd.v1.ComputeNodesService.GetComputeNode:output_type -> go_nd.v1.GetComputeNodeResponse
+	7,  // 36: go_nd.v1.ComputeNodesService.CreateComputeNode:output_type -> go_nd.v1.CreateComputeNodeResponse
+	9,  // 37: go_nd.v1.ComputeNodesService.UpdateComputeNode:output_type -> go_nd.v1.UpdateComputeNodeResponse
+	11, // 38: go_nd.v1.ComputeNodesService.DeleteComputeNode:output_type -> go_nd.v1.DeleteComputeNodeResponse
+	13, // 39: go_nd.v1.ComputeNodesService.ListPortMappings:output_type -> go_nd.v1.ListPortMappingsResponse
+	15, // 40: go_nd.v1.ComputeNodesService.AddPortMapping:output_type -> go_nd.v1.AddPortMappingResponse
+	17, // 41: go_nd.v1.ComputeNodesService.DeletePortMapping:output_type -> go_nd.v1.DeletePortMappingResponse
+	20, // 42: go_nd.v1.ComputeNodesService.ListInterfaces:output_type -> go_nd.v1.ListInterfacesResponse
+	22, // 43: go_nd.v1.ComputeNodesService.CreateInterface:output_type -> go_nd.v1.CreateInterfaceResponse
+	24, // 44: go_nd.v1.ComputeNodesService.UpdateInterface:output_type -> go_nd.v1.UpdateInterfaceResponse
+	26, // 45: go_nd.v1.ComputeNodesService.DeleteInterface:output_type -> go_nd.v1.DeleteInterfaceResponse
+	28, // 46: go_nd.v1.ComputeNodesService.AssignPortToInterface:output_type -> go_nd.v1.AssignPortToInterfaceResponse
+	32, // 47: go_nd.v1.ComputeNodesService.BulkAssignPortMappings:output_type -> go_nd.v1.BulkAssignPortMappingsResponse
+	34, // [34:48] is the sub-list for method output_type
+	20, // [20:34] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_go_nd_v1_compute_nodes_proto_init() }
@@ -1225,7 +2199,7 @@ func file_go_nd_v1_compute_nodes_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_go_nd_v1_compute_nodes_proto_rawDesc), len(file_go_nd_v1_compute_nodes_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

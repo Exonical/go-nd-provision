@@ -1,0 +1,14 @@
+info:
+  name: StorageTenants - List
+  type: grpc
+  seq: 40
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.StorageTenantsService/ListStorageTenants
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: "{}"
+  auth: inherit

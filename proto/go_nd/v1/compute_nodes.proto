@@ -32,6 +32,24 @@ service ComputeNodesService {
 
   // DeletePortMapping removes a port mapping from a compute node
   rpc DeletePortMapping(DeletePortMappingRequest) returns (DeletePortMappingResponse);
+
+  // ListInterfaces lists interfaces for a compute node
+  rpc ListInterfaces(ListInterfacesRequest) returns (ListInterfacesResponse);
+
+  // CreateInterface creates a new interface for a compute node
+  rpc CreateInterface(CreateInterfaceRequest) returns (CreateInterfaceResponse);
+
+  // UpdateInterface updates an existing interface
+  rpc UpdateInterface(UpdateInterfaceRequest) returns (UpdateInterfaceResponse);
+
+  // DeleteInterface deletes an interface
+  rpc DeleteInterface(DeleteInterfaceRequest) returns (DeleteInterfaceResponse);
+
+  // AssignPortToInterface assigns a port mapping to an interface
+  rpc AssignPortToInterface(AssignPortToInterfaceRequest) returns (AssignPortToInterfaceResponse);
+
+  // BulkAssignPortMappings assigns multiple ports to nodes/interfaces in one call
+  rpc BulkAssignPortMappings(BulkAssignPortMappingsRequest) returns (BulkAssignPortMappingsResponse);
 }
 
 // ComputeNode represents a server/compute node
@@ -148,3 +166,101 @@ message DeletePortMappingRequest {
 
 // DeletePortMappingResponse confirms deletion
 message DeletePortMappingResponse {}
+
+// ComputeNodeInterface represents a network interface on a compute node
+message ComputeNodeInterface {
+  string id = 1;
+  string compute_node_id = 2;
+  string role = 3;  // "compute" or "storage"
+  string hostname = 4;
+  string ip_address = 5;
+  string mac_address = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// ListInterfacesRequest lists interfaces for a compute node
+message ListInterfacesRequest {
+  string compute_node_id = 1;
+}
+
+// ListInterfacesResponse returns interfaces
+message ListInterfacesResponse {
+  repeated ComputeNodeInterface interfaces = 1;
+}
+
+// CreateInterfaceRequest creates an interface
+message CreateInterfaceRequest {
+  string compute_node_id = 1;
+  string role = 2;  // "compute" or "storage"
+  string hostname = 3;
+  string ip_address = 4;
+  string mac_address = 5;
+}
+
+// CreateInterfaceResponse returns the created interface
+message CreateInterfaceResponse {
+  ComputeNodeInterface interface = 1;
+}
+
+// UpdateInterfaceRequest updates an interface
+message UpdateInterfaceRequest {
+  string id = 1;
+  string compute_node_id = 2;
+  string hostname = 3;
+  string ip_address = 4;
+  string mac_address = 5;
+}
+
+// UpdateInterfaceResponse returns the updated interface
+message UpdateInterfaceResponse {
+  ComputeNodeInterface interface = 1;
+}
+
+// DeleteInterfaceRequest deletes an interface
+message DeleteInterfaceRequest {
+  string id = 1;
+  string compute_node_id = 2;
+}
+
+// DeleteInterfaceResponse confirms deletion
+message DeleteInterfaceResponse {}
+
+// AssignPortToInterfaceRequest assigns a port mapping to an interface
+message AssignPortToInterfaceRequest {
+  string compute_node_id = 1;
+  string port_mapping_id = 2;
+  string interface_id = 3;  // Empty to unassign
+}
+
+// AssignPortToInterfaceResponse returns the updated port mapping
+message AssignPortToInterfaceResponse {
+  PortMapping port_mapping = 1;
+}
+
+// BulkPortAssignment represents a single port assignment in a bulk operation
+message BulkPortAssignment {
+  string switch_port_id = 1;
+  string node_id = 2;       // Empty to unassign
+  string interface_id = 3;  // Empty for no interface
+}
+
+// BulkAssignmentResult represents the result of a single assignment
+message BulkAssignmentResult {
+  string switch_port_id = 1;
+  bool success = 2;
+  string action = 3;      // "created", "updated", "deleted", "no_change"
+  string mapping_id = 4;
+  string error = 5;
+}
+
+// BulkAssignPortMappingsRequest assigns multiple ports
+message BulkAssignPortMappingsRequest {
+  repeated BulkPortAssignment assignments = 1;
+}
+
+// BulkAssignPortMappingsResponse returns results
+message BulkAssignPortMappingsResponse {
+  repeated BulkAssignmentResult results = 1;
+  int32 total = 2;
+}

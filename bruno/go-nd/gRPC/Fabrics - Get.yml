@@ -1,0 +1,17 @@
+info:
+  name: Fabrics - Get
+  type: grpc
+  seq: 21
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.FabricsService/GetFabric
+  methodType: unary
+  message: |
+    {
+      "id": "DevNet_VxLAN_Fabric"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"

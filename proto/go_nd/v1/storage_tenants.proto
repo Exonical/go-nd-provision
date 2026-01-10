@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package go_nd.v1;
+
+option go_package = "github.com/banglin/go-nd/gen/go_nd/v1;v1";
+
+import "google/protobuf/timestamp.proto";
+
+// StorageTenantsService manages storage tenant configurations
+service StorageTenantsService {
+  // ListStorageTenants lists all storage tenants
+  rpc ListStorageTenants(ListStorageTenantsRequest) returns (ListStorageTenantsResponse);
+
+  // GetStorageTenant retrieves a storage tenant by key
+  rpc GetStorageTenant(GetStorageTenantRequest) returns (GetStorageTenantResponse);
+
+  // CreateStorageTenant creates a new storage tenant
+  rpc CreateStorageTenant(CreateStorageTenantRequest) returns (CreateStorageTenantResponse);
+
+  // UpdateStorageTenant updates an existing storage tenant
+  rpc UpdateStorageTenant(UpdateStorageTenantRequest) returns (UpdateStorageTenantResponse);
+
+  // DeleteStorageTenant deletes a storage tenant
+  rpc DeleteStorageTenant(DeleteStorageTenantRequest) returns (DeleteStorageTenantResponse);
+}
+
+// StorageTenant represents a storage tenant configuration
+message StorageTenant {
+  string id = 1;
+  string key = 2;
+  string name = 3;
+  string storage_network_name = 4;
+  int32 storage_sg_id = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// ListStorageTenantsRequest lists storage tenants
+message ListStorageTenantsRequest {}
+
+// ListStorageTenantsResponse returns storage tenants
+message ListStorageTenantsResponse {
+  repeated StorageTenant storage_tenants = 1;
+}
+
+// GetStorageTenantRequest retrieves a storage tenant
+message GetStorageTenantRequest {
+  string key = 1;
+}
+
+// GetStorageTenantResponse returns a storage tenant
+message GetStorageTenantResponse {
+  StorageTenant storage_tenant = 1;
+}
+
+// CreateStorageTenantRequest creates a storage tenant
+message CreateStorageTenantRequest {
+  string key = 1;
+  string name = 2;
+  string storage_network_name = 3;
+  int32 storage_sg_id = 4;
+}
+
+// CreateStorageTenantResponse returns the created storage tenant
+message CreateStorageTenantResponse {
+  StorageTenant storage_tenant = 1;
+}
+
+// UpdateStorageTenantRequest updates a storage tenant
+message UpdateStorageTenantRequest {
+  string key = 1;
+  string name = 2;
+  string storage_network_name = 3;
+  int32 storage_sg_id = 4;
+}
+
+// UpdateStorageTenantResponse returns the updated storage tenant
+message UpdateStorageTenantResponse {
+  StorageTenant storage_tenant = 1;
+}
+
+// DeleteStorageTenantRequest deletes a storage tenant
+message DeleteStorageTenantRequest {
+  string key = 1;
+}
+
+// DeleteStorageTenantResponse confirms deletion
+message DeleteStorageTenantResponse {}

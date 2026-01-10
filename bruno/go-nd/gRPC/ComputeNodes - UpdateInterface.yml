@@ -1,0 +1,25 @@
+info:
+  name: ComputeNodes - UpdateInterface
+  type: grpc
+  seq: 32
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/UpdateInterface
+  methodType: unary
+  message: |
+    {
+      "id": "{{interfaceId}}",
+      "compute_node_id": "{{nodeId}}",
+      "hostname": "node1-compute-updated",
+      "ip_address": "10.0.1.11",
+      "mac_address": "00:11:22:33:44:56"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"
+
+vars:pre-request:
+  nodeId: ""
+  interfaceId: ""

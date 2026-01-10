@@ -1,0 +1,19 @@
+info:
+  name: ComputeNodes - AddPortMapping
+  type: grpc
+  seq: 13
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/AddPortMapping
+  methodType: unary
+  metadata:
+    - name: authorization
+      value: Bearer {{grpcToken}}
+  message: |
+    {
+      "compute_node_id": "node-id-here",
+      "switch_port_id": "port-id-here",
+      "nic_name": "eth0"
+    }
+  auth: inherit

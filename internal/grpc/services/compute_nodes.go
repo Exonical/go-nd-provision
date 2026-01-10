@@ -212,6 +212,270 @@ func (s *ComputeNodesServiceServer) DeletePortMapping(ctx context.Context, req *
 	return &v1.DeletePortMappingResponse{}, nil
 }
 
+// ListInterfaces lists interfaces for a compute node.
+func (s *ComputeNodesServiceServer) ListInterfaces(ctx context.Context, req *v1.ListInterfacesRequest) (*v1.ListInterfacesResponse, error) {
+	if req.ComputeNodeId == "" {
+		return nil, status.Error(codes.InvalidArgument, "compute_node_id is required")
+	}
+
+	var interfaces []models.ComputeNodeInterface
+	if err := database.DB.WithContext(ctx).Where("compute_node_id = ?", req.ComputeNodeId).Find(&interfaces).Error; err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	protoInterfaces := make([]*v1.ComputeNodeInterface, len(interfaces))
+	for i := range interfaces {
+		protoInterfaces[i] = interfaceToProto(&interfaces[i])
+	}
+
+	return &v1.ListInterfacesResponse{
+		Interfaces: protoInterfaces,
+	}, nil
+}
+
+// CreateInterface creates a new interface for a compute node.
+func (s *ComputeNodesServiceServer) CreateInterface(ctx context.Context, req *v1.CreateInterfaceRequest) (*v1.CreateInterfaceResponse, error) {
+	if req.ComputeNodeId == "" {
+		return nil, status.Error(codes.InvalidArgument, "compute_node_id is required")
+	}
+	if req.Role == "" {
+		return nil, status.Error(codes.InvalidArgument, "role is required")
+	}
+	if req.Role != "compute" && req.Role != "storage" {
+		return nil, status.Error(codes.InvalidArgument, "role must be 'compute' or 'storage'")
+	}
+
+	// Check node exists
+	var node models.ComputeNode
+	if err := database.DB.WithContext(ctx).First(&node, "id = ?", req.ComputeNodeId).Error; err != nil {
+		return nil, status.Error(codes.NotFound, "compute node not found")
+	}
+
+	// Check max 2 interfaces
+	var count int64
+	database.DB.Model(&models.ComputeNodeInterface{}).Where("compute_node_id = ?", req.ComputeNodeId).Count(&count)
+	if count >= 2 {
+		return nil, status.Error(codes.FailedPrecondition, "node already has maximum of 2 interfaces")
+	}
+
+	// Check no duplicate role
+	var existing models.ComputeNodeInterface
+	if err := database.DB.WithContext(ctx).Where("compute_node_id = ? AND role = ?", req.ComputeNodeId, req.Role).First(&existing).Error; err == nil {
+		return nil, status.Error(codes.AlreadyExists, "interface with this role already exists")
+	}
+
+	iface := models.ComputeNodeInterface{
+		ID:            uuid.New().String(),
+		ComputeNodeID: req.ComputeNodeId,
+		Role:          models.InterfaceRole(req.Role),
+		Hostname:      req.Hostname,
+		IPAddress:     req.IpAddress,
+		MACAddress:    req.MacAddress,
+	}
+
+	if err := database.DB.WithContext(ctx).Create(&iface).Error; err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &v1.CreateInterfaceResponse{
+		Interface: interfaceToProto(&iface),
+	}, nil
+}
+
+// UpdateInterface updates an existing interface.
+func (s *ComputeNodesServiceServer) UpdateInterface(ctx context.Context, req *v1.UpdateInterfaceRequest) (*v1.UpdateInterfaceResponse, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	var iface models.ComputeNodeInterface
+	if err := database.DB.WithContext(ctx).First(&iface, "id = ?", req.Id).Error; err != nil {
+		return nil, status.Error(codes.NotFound, "interface not found")
+	}
+
+	if req.Hostname != "" {
+		iface.Hostname = req.Hostname
+	}
+	if req.IpAddress != "" {
+		iface.IPAddress = req.IpAddress
+	}
+	if req.MacAddress != "" {
+		iface.MACAddress = req.MacAddress
+	}
+
+	if err := database.DB.WithContext(ctx).Save(&iface).Error; err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &v1.UpdateInterfaceResponse{
+		Interface: interfaceToProto(&iface),
+	}, nil
+}
+
+// DeleteInterface deletes an interface.
+func (s *ComputeNodesServiceServer) DeleteInterface(ctx context.Context, req *v1.DeleteInterfaceRequest) (*v1.DeleteInterfaceResponse, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	if err := database.DB.WithContext(ctx).Delete(&models.ComputeNodeInterface{}, "id = ?", req.Id).Error; err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &v1.DeleteInterfaceResponse{}, nil
+}
+
+// AssignPortToInterface assigns a port mapping to an interface.
+func (s *ComputeNodesServiceServer) AssignPortToInterface(ctx context.Context, req *v1.AssignPortToInterfaceRequest) (*v1.AssignPortToInterfaceResponse, error) {
+	if req.ComputeNodeId == "" || req.PortMappingId == "" {
+		return nil, status.Error(codes.InvalidArgument, "compute_node_id and port_mapping_id are required")
+	}
+
+	var mapping models.ComputeNodePortMapping
+	if err := database.DB.WithContext(ctx).Where("id = ? AND compute_node_id = ?", req.PortMappingId, req.ComputeNodeId).First(&mapping).Error; err != nil {
+		return nil, status.Error(codes.NotFound, "port mapping not found")
+	}
+
+	if req.InterfaceId != "" {
+		// Validate interface exists and belongs to node
+		var iface models.ComputeNodeInterface
+		if err := database.DB.WithContext(ctx).Where("id = ? AND compute_node_id = ?", req.InterfaceId, req.ComputeNodeId).First(&iface).Error; err != nil {
+			return nil, status.Error(codes.NotFound, "interface not found or doesn't belong to this node")
+		}
+		// Check interface doesn't already have a port
+		var existingMapping models.ComputeNodePortMapping
+		if err := database.DB.WithContext(ctx).Where("interface_id = ? AND id != ?", req.InterfaceId, req.PortMappingId).First(&existingMapping).Error; err == nil {
+			return nil, status.Error(codes.FailedPrecondition, "interface already has a port assigned")
+		}
+		mapping.InterfaceID = &req.InterfaceId
+	} else {
+		mapping.InterfaceID = nil
+	}
+
+	if err := database.DB.WithContext(ctx).Save(&mapping).Error; err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	database.DB.Preload("SwitchPort.Switch").First(&mapping, "id = ?", mapping.ID)
+
+	return &v1.AssignPortToInterfaceResponse{
+		PortMapping: portMappingToProto(&mapping),
+	}, nil
+}
+
+// BulkAssignPortMappings assigns multiple ports to nodes/interfaces.
+func (s *ComputeNodesServiceServer) BulkAssignPortMappings(ctx context.Context, req *v1.BulkAssignPortMappingsRequest) (*v1.BulkAssignPortMappingsResponse, error) {
+	results := make([]*v1.BulkAssignmentResult, 0, len(req.Assignments))
+
+	for _, assignment := range req.Assignments {
+		result := &v1.BulkAssignmentResult{
+			SwitchPortId: assignment.SwitchPortId,
+		}
+
+		// Find existing mapping
+		var mapping models.ComputeNodePortMapping
+		err := database.DB.WithContext(ctx).Where("switch_port_id = ?", assignment.SwitchPortId).First(&mapping).Error
+
+		if assignment.NodeId == "" {
+			// Unassign
+			if err == nil {
+				if err := database.DB.WithContext(ctx).Delete(&mapping).Error; err != nil {
+					result.Success = false
+					result.Error = err.Error()
+				} else {
+					result.Success = true
+					result.Action = "deleted"
+				}
+			} else {
+				result.Success = true
+				result.Action = "no_change"
+			}
+		} else {
+			// Assign to node
+			var node models.ComputeNode
+			if err := database.DB.WithContext(ctx).Where("id = ? OR name = ?", assignment.NodeId, assignment.NodeId).First(&node).Error; err != nil {
+				result.Success = false
+				result.Error = "node not found"
+				results = append(results, result)
+				continue
+			}
+
+			var interfaceID *string
+			if assignment.InterfaceId != "" {
+				var iface models.ComputeNodeInterface
+				if err := database.DB.WithContext(ctx).Where("id = ? AND compute_node_id = ?", assignment.InterfaceId, node.ID).First(&iface).Error; err != nil {
+					result.Success = false
+					result.Error = "interface not found or doesn't belong to this node"
+					results = append(results, result)
+					continue
+				}
+				// Check interface doesn't already have a port
+				var existingMapping models.ComputeNodePortMapping
+				if err := database.DB.WithContext(ctx).Where("interface_id = ? AND switch_port_id != ?", assignment.InterfaceId, assignment.SwitchPortId).First(&existingMapping).Error; err == nil {
+					result.Success = false
+					result.Error = "interface already has a port assigned"
+					results = append(results, result)
+					continue
+				}
+				interfaceID = &assignment.InterfaceId
+			}
+
+			if err == nil {
+				// Update existing
+				mapping.ComputeNodeID = node.ID
+				mapping.InterfaceID = interfaceID
+				if err := database.DB.WithContext(ctx).Save(&mapping).Error; err != nil {
+					result.Success = false
+					result.Error = err.Error()
+				} else {
+					result.Success = true
+					result.Action = "updated"
+					result.MappingId = mapping.ID
+				}
+			} else {
+				// Create new
+				mapping = models.ComputeNodePortMapping{
+					ID:            uuid.New().String(),
+					ComputeNodeID: node.ID,
+					SwitchPortID:  assignment.SwitchPortId,
+					InterfaceID:   interfaceID,
+				}
+				if err := database.DB.WithContext(ctx).Create(&mapping).Error; err != nil {
+					result.Success = false
+					result.Error = err.Error()
+				} else {
+					result.Success = true
+					result.Action = "created"
+					result.MappingId = mapping.ID
+				}
+			}
+		}
+		results = append(results, result)
+	}
+
+	return &v1.BulkAssignPortMappingsResponse{
+		Results: results,
+		Total:   int32(len(results)),
+	}, nil
+}
+
+// interfaceToProto converts a models.ComputeNodeInterface to proto.
+func interfaceToProto(i *models.ComputeNodeInterface) *v1.ComputeNodeInterface {
+	if i == nil {
+		return nil
+	}
+	return &v1.ComputeNodeInterface{
+		Id:            i.ID,
+		ComputeNodeId: i.ComputeNodeID,
+		Role:          string(i.Role),
+		Hostname:      i.Hostname,
+		IpAddress:     i.IPAddress,
+		MacAddress:    i.MACAddress,
+		CreatedAt:     timestamppb.New(i.CreatedAt),
+		UpdatedAt:     timestamppb.New(i.UpdatedAt),
+	}
+}
+
 // computeNodeToProto converts a models.ComputeNode to proto.
 func computeNodeToProto(n *models.ComputeNode) *v1.ComputeNode {
 	if n == nil {

@@ -1,0 +1,24 @@
+info:
+  name: ComputeNodes - CreateInterface
+  type: grpc
+  seq: 31
+
+grpc:
+  url: "{{grpcUrl}}"
+  method: /go_nd.v1.ComputeNodesService/CreateInterface
+  methodType: unary
+  message: |
+    {
+      "compute_node_id": "{{nodeId}}",
+      "role": "compute",
+      "hostname": "node1-compute",
+      "ip_address": "10.0.1.10",
+      "mac_address": "00:11:22:33:44:55"
+    }
+  auth: inherit
+  metadata:
+    - name: authorization
+      value: "Bearer {{grpcToken}}"
+
+vars:pre-request:
+  nodeId: ""
