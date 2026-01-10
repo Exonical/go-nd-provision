@@ -27,6 +27,7 @@ func NewJobHandler(db *gorm.DB, ndClient *ndclient.Client, cfg *config.NexusDash
 type SubmitJobInput struct {
 	SlurmJobID   string   `json:"slurm_job_id" binding:"required"`
 	Name         string   `json:"name"`
+	Tenant       string   `json:"tenant"` // Storage tenant key for tenant-specific storage access
 	ComputeNodes []string `json:"compute_nodes" binding:"required"`
 }
 
@@ -41,6 +42,7 @@ func (h *JobHandler) SubmitJob(c *gin.Context) {
 	result, err := h.svc.Provision(c.Request.Context(), services.ProvisionInput{
 		SlurmJobID:   input.SlurmJobID,
 		Name:         input.Name,
+		Tenant:       input.Tenant,
 		ComputeNodes: input.ComputeNodes,
 	})
 

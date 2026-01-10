@@ -31,7 +31,7 @@ type SharedContractAssociation struct {
 // SharedContracts is the list of common contract associations applied to every job
 // Add or remove entries here to manage shared service access
 var SharedContracts = []SharedContractAssociation{
-	{DstGroupName: "ActiveDirectory", ContractName: "matchAD"},
+	{DstGroupName: "SG_AD", ContractName: "matchAD"},
 }
 
 // JobService handles job provisioning and deprovisioning
@@ -40,6 +40,7 @@ type JobService struct {
 	ndClient      *ndclient.Client
 	cfg           *config.NexusDashboardConfig
 	deployBatcher *DeployBatcher
+	storageSvc    *StorageService
 
 	// Cache for shared group IDs (refreshed periodically)
 	sharedGroupCache     map[string]int // groupName -> groupID
@@ -75,6 +76,7 @@ func NewJobService(db *gorm.DB, ndClient *ndclient.Client, cfg *config.NexusDash
 		ndClient:            ndClient,
 		cfg:                 cfg,
 		deployBatcher:       NewDeployBatcher(ndClient, deployDebounceTime, deployMaxWaitTime),
+		storageSvc:          NewStorageService(db, ndClient, cfg),
 		sharedGroupCache:    make(map[string]int),
 		sharedGroupCacheTTL: 5 * time.Minute,
 	}
@@ -84,6 +86,7 @@ func NewJobService(db *gorm.DB, ndClient *ndclient.Client, cfg *config.NexusDash
 type ProvisionInput struct {
 	SlurmJobID   string
 	Name         string
+	Tenant       string // Storage tenant key for tenant-specific storage access
 	ComputeNodes []string
 }
 
@@ -182,6 +185,7 @@ func (s *JobService) Provision(ctx context.Context, input ProvisionInput) (*Prov
 			ID:           uuid.New().String(),
 			SlurmJobID:   input.SlurmJobID,
 			Name:         input.Name,
+			TenantKey:    input.Tenant,
 			Status:       string(models.JobStatusPending),
 			FabricName:   fabricName,
 			VRFName:      vrfName,
@@ -205,11 +209,19 @@ func (s *JobService) Provision(ctx context.Context, input ProvisionInput) (*Prov
 				ComputeNodeID: node.ID,
 			})
 
-			// Get port mappings
+			// Get compute interface for this node (if any)
+			var computeInterface models.ComputeNodeInterface
+			hasComputeInterface := tx.Where("compute_node_id = ? AND role = ?", node.ID, models.InterfaceRoleCompute).
+				First(&computeInterface).Error == nil
+
+			// Get port mappings - only those assigned to compute interface if one exists
 			var mappings []models.ComputeNodePortMapping
-			if err := tx.Preload("SwitchPort.Switch").
-				Where("compute_node_id = ?", node.ID).
-				Find(&mappings).Error; err != nil {
+			query := tx.Preload("SwitchPort.Switch").Where("compute_node_id = ?", node.ID)
+			if hasComputeInterface {
+				// Only use mappings assigned to the compute interface
+				query = query.Where("interface_id = ?", computeInterface.ID)
+			}
+			if err := query.Find(&mappings).Error; err != nil {
 				return fmt.Errorf("failed to get port mappings for %s: %w", node.Name, err)
 			}
 
@@ -461,7 +473,24 @@ func (s *JobService) provisionNDFC(ctx context.Context, job *models.Job, portInf
 	s.createContractAndAssociations(secCtx, fabricName, vrfName, job.ContractName, groupName, groupID)
 	secCancel()
 
-	// 7. Deploy fabric configuration to apply security changes (batched)
+	// 7. Provision storage access if tenant is specified
+	if job.TenantKey != "" {
+		if err := s.provisionStorageAccess(ctx, job); err != nil {
+			logger.Error("Failed to provision storage access, rolling back",
+				zap.String("job", job.SlurmJobID),
+				zap.String("tenant", job.TenantKey),
+				zap.Error(err))
+			// Rollback: deprovision what we created
+			if deprovErr := s.Deprovision(ctx, job); deprovErr != nil {
+				logger.Warn("Failed to rollback job provisioning",
+					zap.String("job", job.SlurmJobID),
+					zap.Error(deprovErr))
+			}
+			return fmt.Errorf("storage provisioning failed: %w", err)
+		}
+	}
+
+	// 8. Deploy fabric configuration to apply security changes (batched)
 	// Uses DeployBatcher to coalesce multiple rapid job requests into a single deploy.
 	// This prevents "deploy already in progress" errors when jobs arrive quickly.
 	if err := s.deployBatcher.RequestDeploy(ctx, fabricName); err != nil {
@@ -718,6 +747,7 @@ func (s *JobService) createContractAndAssociations(ctx context.Context, fabricNa
 		ContractName: contractName,
 		Rules: []ndclient.ContractRule{
 			{Direction: "bidirectional", Action: "permit", ProtocolName: "icmp"},
+			{Direction: "bidirectional", Action: "permit", ProtocolName: "SSH"},
 		},
 	}
 	if _, err := s.ndClient.CreateSecurityContract(ctx, fabricName, contract); err != nil {
@@ -971,7 +1001,15 @@ func (s *JobService) Deprovision(ctx context.Context, job *models.Job) error {
 		return fmt.Errorf("failed to update job status: %w", err)
 	}
 
-	// Cleanup NDFC resources
+	// Cleanup storage access first (if any)
+	if err := s.storageSvc.DeprovisionStorageForJob(ctx, job); err != nil {
+		logger.Warn("Failed to deprovision storage access",
+			zap.String("job", job.SlurmJobID),
+			zap.Error(err))
+		// Continue with compute cleanup
+	}
+
+	// Cleanup NDFC compute resources
 	var ndfcError error
 	if s.ndClient != nil && job.SecurityGroup != nil {
 		ndfcError = s.deprovisionNDFC(ctx, job)
@@ -1092,6 +1130,37 @@ func (s *JobService) generateGroupID(slurmJobID string) int {
 		groupID = (groupID*31 + int(c)) % (65535 - 16)
 	}
 	return groupID + 16
+}
+
+// provisionStorageAccess provisions storage access for a job based on tenant configuration
+func (s *JobService) provisionStorageAccess(ctx context.Context, job *models.Job) error {
+	if job.TenantKey == "" {
+		return nil
+	}
+
+	// Look up tenant configuration
+	var tenant models.StorageTenant
+	if err := s.db.WithContext(ctx).Where("key = ?", job.TenantKey).First(&tenant).Error; err != nil {
+		return fmt.Errorf("storage tenant %q not found: %w", job.TenantKey, err)
+	}
+
+	// Get compute nodes for this job
+	var jobNodes []models.JobComputeNode
+	if err := s.db.WithContext(ctx).
+		Preload("ComputeNode").
+		Where("job_id = ?", job.ID).
+		Find(&jobNodes).Error; err != nil {
+		return fmt.Errorf("failed to get job compute nodes: %w", err)
+	}
+
+	nodes := make([]models.ComputeNode, 0, len(jobNodes))
+	for _, jn := range jobNodes {
+		if jn.ComputeNode != nil {
+			nodes = append(nodes, *jn.ComputeNode)
+		}
+	}
+
+	return s.storageSvc.ProvisionStorageForJob(ctx, job, &tenant, nodes)
 }
 
 // GetJob retrieves a job by Slurm job ID

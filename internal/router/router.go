@@ -5,6 +5,7 @@ import (
 	"github.com/banglin/go-nd/internal/database"
 	"github.com/banglin/go-nd/internal/handlers"
 	"github.com/banglin/go-nd/internal/ndclient"
+	"github.com/banglin/go-nd/internal/services"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -20,11 +21,16 @@ func Setup(ndClient *ndclient.Client, cfg *config.Config) *gin.Engine {
 		AllowCredentials: true,
 	}))
 
+	// Initialize services
+	storageService := services.NewStorageService(database.DB, ndClient, &cfg.NexusDashboard)
+
 	// Initialize handlers
 	fabricHandler := handlers.NewFabricHandler(ndClient)
-	computeHandler := handlers.NewComputeHandler()
+	computeHandler := handlers.NewComputeHandler(storageService)
+	interfaceHandler := handlers.NewInterfaceHandler(storageService)
 	securityHandler := handlers.NewSecurityHandler(ndClient)
 	jobHandler := handlers.NewJobHandler(database.DB, ndClient, &cfg.NexusDashboard)
+	storageTenantHandler := handlers.NewStorageTenantHandler()
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
@@ -74,11 +80,21 @@ func Setup(ndClient *ndclient.Client, cfg *config.Config) *gin.Engine {
 			compute.POST("/:id/port-mappings", computeHandler.AddPortMapping)
 			compute.PUT("/:id/port-mappings/:mappingId", computeHandler.UpdatePortMapping)
 			compute.DELETE("/:id/port-mappings/:mappingId", computeHandler.DeletePortMapping)
+
+			// Interface routes (compute/storage NICs)
+			compute.GET("/:id/interfaces", interfaceHandler.GetInterfaces)
+			compute.POST("/:id/interfaces", interfaceHandler.CreateInterface)
+			compute.PUT("/:id/interfaces/:interfaceId", interfaceHandler.UpdateInterface)
+			compute.DELETE("/:id/interfaces/:interfaceId", interfaceHandler.DeleteInterface)
+			compute.PUT("/:id/port-mappings/:mappingId/interface", interfaceHandler.AssignPortMapping)
 		}
 
 		// Compute nodes by switch/port lookup
 		v1.GET("/switches/:switchId/compute-nodes", computeHandler.GetComputeNodesBySwitch)
 		v1.GET("/ports/:portId/compute-nodes", computeHandler.GetComputeNodesBySwitchPort)
+
+		// Bulk port mapping assignment
+		v1.POST("/port-mappings/bulk", interfaceHandler.BulkAssignPortMappings)
 
 		// Security routes (Legacy 3.x API)
 		security := v1.Group("/security")
@@ -121,6 +137,16 @@ func Setup(ndClient *ndclient.Client, cfg *config.Config) *gin.Engine {
 			jobs.GET("/:slurm_job_id", jobHandler.GetJob)
 			jobs.POST("/:slurm_job_id/complete", jobHandler.CompleteJob)
 			jobs.POST("/cleanup", jobHandler.CleanupExpiredJobs)
+		}
+
+		// Storage tenant routes (admin configuration for tenant storage access)
+		storageTenants := v1.Group("/storage-tenants")
+		{
+			storageTenants.GET("", storageTenantHandler.GetStorageTenants)
+			storageTenants.GET("/:key", storageTenantHandler.GetStorageTenant)
+			storageTenants.POST("", storageTenantHandler.CreateStorageTenant)
+			storageTenants.PUT("/:key", storageTenantHandler.UpdateStorageTenant)
+			storageTenants.DELETE("/:key", storageTenantHandler.DeleteStorageTenant)
 		}
 	}
 

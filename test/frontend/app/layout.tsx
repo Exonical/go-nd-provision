@@ -40,6 +40,9 @@ export default function RootLayout({
                   <Link href="/compute-nodes" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
                     Compute Nodes
                   </Link>
+                  <Link href="/storage-tenants" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+                    Storage Tenants
+                  </Link>
                 </div>
               </div>
             </div>

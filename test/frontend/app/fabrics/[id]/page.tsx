@@ -212,7 +212,20 @@ export default function FabricDetailPage() {
             <div className="text-zinc-600 dark:text-zinc-400">No ports found</div>
           ) : (
             <div className="max-h-[600px] overflow-y-auto space-y-1">
-              {ports.map((port) => {
+              {[...ports].sort((a, b) => {
+                // Extract port numbers for sorting (e.g., "Ethernet1/29" -> [1, 29])
+                const extractNums = (name: string) => {
+                  const matches = name.match(/(\d+)/g);
+                  return matches ? matches.map(Number) : [0];
+                };
+                const numsA = extractNums(a.name);
+                const numsB = extractNums(b.name);
+                for (let i = 0; i < Math.max(numsA.length, numsB.length); i++) {
+                  const diff = (numsA[i] || 0) - (numsB[i] || 0);
+                  if (diff !== 0) return diff;
+                }
+                return a.name.localeCompare(b.name);
+              }).map((port) => {
                 const mapping = portMappings.get(port.id);
                 return (
                   <div

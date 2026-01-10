@@ -41,6 +41,7 @@ func (s *JobsServiceServer) SubmitJob(ctx context.Context, req *v1.SubmitJobRequ
 	result, err := s.svc.Provision(ctx, services.ProvisionInput{
 		SlurmJobID:   req.SlurmJobId,
 		Name:         req.Name,
+		Tenant:       req.Tenant,
 		ComputeNodes: req.ComputeNodes,
 	})
 	if err != nil {
@@ -155,6 +156,7 @@ func jobToProto(j *models.Job) *v1.Job {
 		Id:           j.ID,
 		SlurmJobId:   j.SlurmJobID,
 		Name:         j.Name,
+		TenantKey:    j.TenantKey,
 		Status:       modelStatusToProto(j.Status),
 		FabricName:   j.FabricName,
 		VrfName:      j.VRFName,

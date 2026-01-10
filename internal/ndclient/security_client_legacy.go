@@ -115,28 +115,29 @@ func (c *Client) UpdateSecurityGroups(ctx context.Context, fabricName string, gr
 		return nil, fmt.Errorf("groups cannot be empty")
 	}
 
-	// Validate and sanitize each group
-	sanitized := make([]SecurityGroup, len(groups))
+	// NDFC API requires PUT to /groups/{groupId} for each group (not batch PUT to /groups)
+	var results []SecurityGroup
 	for i, g := range groups {
 		if err := validateSecurityGroup(g); err != nil {
 			return nil, fmt.Errorf("groups[%d]: %w", i, err)
 		}
-		sanitized[i] = sanitizeGroupForRequest(g)
-	}
+		if g.GroupID == nil || *g.GroupID <= 0 {
+			return nil, fmt.Errorf("groups[%d]: groupID is required for update", i)
+		}
 
-	path, err := c.secFabricPath(fabricName, "groups")
-	if err != nil {
-		return nil, err
-	}
+		sanitized := sanitizeGroupForRequest(g)
+		path, err := c.secFabricPath(fabricName, "groups", fmt.Sprintf("%d", *g.GroupID))
+		if err != nil {
+			return nil, err
+		}
 
-	var out BatchResponseGroups
-	if err := c.Put(ctx, path, sanitized, &out); err != nil {
-		return nil, wrapOpErr(opUpdateSecGroups, fabricName, err)
+		var out SecurityGroup
+		if err := c.Put(ctx, path, sanitized, &out); err != nil {
+			return nil, wrapOpErr(opUpdateSecGroups, fabricName, err)
+		}
+		results = append(results, out)
 	}
-	if err := batchErr(opUpdateSecGroups, fabricName, out.BatchResponse); err != nil {
-		return nil, err
-	}
-	return out.SuccessList, nil
+	return results, nil
 }
 
 func (c *Client) DeleteSecurityGroup(ctx context.Context, fabricName string, groupID int) error {

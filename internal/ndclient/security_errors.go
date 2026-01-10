@@ -132,9 +132,10 @@ func isBatchError(out BatchResponse) bool {
 		return true
 	}
 	// Check for batch-level error even when FailedCount==0
+	// Note: NDFC returns code "200" for success, so we need to handle that
 	if out.Code != "" {
 		code := strings.ToLower(out.Code)
-		if code != "success" && code != "ok" && code != "" {
+		if code != "success" && code != "ok" && code != "200" && code != "" {
 			return true
 		}
 	}

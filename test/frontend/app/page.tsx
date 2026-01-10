@@ -30,6 +30,26 @@ export default function Home() {
             Create and manage compute nodes and their port mappings
           </p>
         </Link>
+
+        <Link
+          href="/switch-ports"
+          className="block p-6 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
+        >
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Switch Ports</h2>
+          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+            Bulk assign switch ports to compute nodes and interfaces
+          </p>
+        </Link>
+
+        <Link
+          href="/storage-tenants"
+          className="block p-6 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
+        >
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Storage Tenants</h2>
+          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+            Manage storage tenant configurations for NDFC provisioning
+          </p>
+        </Link>
       </div>
 
       <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-lg">

@@ -72,6 +72,14 @@ type SwitchPort struct {
 	LastSeenAt  *time.Time     `json:"last_seen_at,omitempty"`
 }
 
+// InterfaceRole represents the role of a compute node interface
+type InterfaceRole string
+
+const (
+	InterfaceRoleCompute InterfaceRole = "compute"
+	InterfaceRoleStorage InterfaceRole = "storage"
+)
+
 // ComputeNode represents a server/compute node
 type ComputeNode struct {
 	ID           string                   `gorm:"primaryKey" json:"id"`
@@ -83,21 +91,39 @@ type ComputeNode struct {
 	CreatedAt    time.Time                `json:"created_at"`
 	UpdatedAt    time.Time                `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt           `gorm:"index" json:"-"`
+	Interfaces   []ComputeNodeInterface   `gorm:"foreignKey:ComputeNodeID" json:"interfaces,omitempty"`
 	PortMappings []ComputeNodePortMapping `gorm:"foreignKey:ComputeNodeID" json:"port_mappings,omitempty"`
+}
+
+// ComputeNodeInterface represents a logical interface (compute or storage) on a node
+type ComputeNodeInterface struct {
+	ID            string                   `gorm:"primaryKey" json:"id"`
+	ComputeNodeID string                   `gorm:"index;not null;uniqueIndex:idx_node_role" json:"compute_node_id"`
+	ComputeNode   *ComputeNode             `gorm:"foreignKey:ComputeNodeID" json:"compute_node,omitempty"`
+	Role          InterfaceRole            `gorm:"not null;uniqueIndex:idx_node_role" json:"role"` // compute or storage
+	Hostname      string                   `json:"hostname"`                                       // Per-interface hostname (optional)
+	IPAddress     string                   `json:"ip_address"`                                     // Per-interface IP (optional)
+	MACAddress    string                   `json:"mac_address"`                                    // Per-interface MAC (optional)
+	CreatedAt     time.Time                `json:"created_at"`
+	UpdatedAt     time.Time                `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt           `gorm:"index" json:"-"`
+	PortMappings  []ComputeNodePortMapping `gorm:"foreignKey:InterfaceID" json:"port_mappings,omitempty"`
 }
 
 // ComputeNodePortMapping maps a compute node to a switch port
 type ComputeNodePortMapping struct {
-	ID            string         `gorm:"primaryKey" json:"id"`
-	ComputeNodeID string         `gorm:"index;not null" json:"compute_node_id"`
-	ComputeNode   *ComputeNode   `gorm:"foreignKey:ComputeNodeID" json:"compute_node,omitempty"`
-	SwitchPortID  string         `gorm:"index;not null" json:"switch_port_id"`
-	SwitchPort    *SwitchPort    `gorm:"foreignKey:SwitchPortID" json:"switch_port,omitempty"`
-	NICName       string         `json:"nic_name"`
-	VLAN          int            `json:"vlan"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	ID            string                `gorm:"primaryKey" json:"id"`
+	ComputeNodeID string                `gorm:"index;not null" json:"compute_node_id"`
+	ComputeNode   *ComputeNode          `gorm:"foreignKey:ComputeNodeID" json:"compute_node,omitempty"`
+	InterfaceID   *string               `gorm:"index" json:"interface_id,omitempty"` // Links to ComputeNodeInterface (nullable for migration)
+	Interface     *ComputeNodeInterface `gorm:"foreignKey:InterfaceID" json:"interface,omitempty"`
+	SwitchPortID  string                `gorm:"index;not null" json:"switch_port_id"`
+	SwitchPort    *SwitchPort           `gorm:"foreignKey:SwitchPortID" json:"switch_port,omitempty"`
+	NICName       string                `json:"nic_name"`
+	VLAN          int                   `json:"vlan"`
+	CreatedAt     time.Time             `json:"created_at"`
+	UpdatedAt     time.Time             `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt        `gorm:"index" json:"-"`
 }
 
 // SecurityGroup represents a Nexus Dashboard Security Group
@@ -181,8 +207,9 @@ type Job struct {
 	ID              string           `gorm:"primaryKey" json:"id"`
 	SlurmJobID      string           `gorm:"uniqueIndex;not null" json:"slurm_job_id"`
 	Name            string           `json:"name"`
-	Status          string           `gorm:"index;not null" json:"status"` // pending, provisioning, active, deprovisioning, completed, failed
-	ErrorMessage    *string          `json:"error_message,omitempty"`      // Error details if status is failed
+	TenantKey       string           `gorm:"index" json:"tenant_key,omitempty"` // Storage tenant key for tenant-specific storage access
+	Status          string           `gorm:"index;not null" json:"status"`      // pending, provisioning, active, deprovisioning, completed, failed
+	ErrorMessage    *string          `json:"error_message,omitempty"`           // Error details if status is failed
 	FabricName      string           `gorm:"not null" json:"fabric_name"`
 	VRFName         string           `json:"vrf_name"`
 	ContractName    string           `json:"contract_name"`
@@ -231,6 +258,40 @@ type Tenant struct {
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 	VMs         []VM           `gorm:"foreignKey:TenantID" json:"vms,omitempty"`
+}
+
+// StorageTenant represents a storage tenant configuration for job provisioning
+// Maps a tenant key (passed with job) to admin-configured storage network and contracts
+type StorageTenant struct {
+	ID                   string         `gorm:"primaryKey" json:"id"`
+	Key                  string         `gorm:"uniqueIndex;not null" json:"key"` // Tenant key passed with job submission
+	Description          string         `json:"description"`
+	StorageNetworkName   string         `gorm:"not null" json:"storage_network_name"`   // NDFC network name for tenant storage (e.g., TENANT1_STORAGE_NET)
+	StorageNetworkSGName string         `json:"storage_network_sg_name"`                // SG name for tenant storage network (e.g., SG_TENANT1_STORAGE)
+	StorageDstGroupName  string         `gorm:"not null" json:"storage_dst_group_name"` // SG name for shared services (e.g., SG_AD)
+	StorageContractName  string         `gorm:"not null" json:"storage_contract_name"`  // Contract for node -> tenant storage access
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
+	DeletedAt            gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+// JobStorageAccess tracks ephemeral storage associations created for a job
+// Used for deterministic cleanup on job deprovision
+type JobStorageAccess struct {
+	ID              string         `gorm:"primaryKey" json:"id"`
+	JobID           string         `gorm:"index;not null" json:"job_id"`
+	Job             *Job           `gorm:"foreignKey:JobID" json:"job,omitempty"`
+	ComputeNodeID   string         `gorm:"index;not null" json:"compute_node_id"`
+	ComputeNode     *ComputeNode   `gorm:"foreignKey:ComputeNodeID" json:"compute_node,omitempty"`
+	StorageTenantID string         `gorm:"index;not null" json:"storage_tenant_id"`
+	StorageTenant   *StorageTenant `gorm:"foreignKey:StorageTenantID" json:"storage_tenant,omitempty"`
+	SrcGroupName    string         `json:"src_group_name"`    // storage-node-<nodeName>
+	DstGroupName    string         `json:"dst_group_name"`    // tenant storage services SG
+	ContractName    string         `json:"contract_name"`     // tenant storage contract
+	FabricName      string         `json:"fabric_name"`       // ND_STORAGE_FABRIC_NAME
+	VRFName         string         `json:"vrf_name"`          // ND_STORAGE_VRF_NAME
+	PrevNetworkName string         `json:"prev_network_name"` // Network before job (for revert)
+	CreatedAt       time.Time      `json:"created_at"`
 }
 
 // VM represents a virtual machine with security provisioning

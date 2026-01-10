@@ -49,6 +49,9 @@ type NexusDashboardConfig struct {
 	ComputeNetworkName    string // Network name for security group selection
 	ComputeAccessVLAN     string // Default access VLAN for compute interfaces (fallback if not in mapping)
 	ComputeContractPrefix string // Optional prefix for job-specific contract names
+	StorageFabricName     string // Fabric for storage NIC provisioning
+	StorageVRFName        string // VRF for storage NIC provisioning
+	StorageNetworkName    string // Default/idle storage network (nodes attach here when not in a job)
 	VMFabricName          string // VRF is per-tenant, not global
 	SyncIntervalHours     int    // Interval for background sync of fabrics/switches/ports (0 = disabled)
 }
@@ -102,6 +105,9 @@ func Load() *Config {
 			ComputeNetworkName:    getEnv("ND_COMPUTE_NETWORK_NAME", ""),
 			ComputeAccessVLAN:     getEnv("ND_COMPUTE_ACCESS_VLAN", "2301"),
 			ComputeContractPrefix: getEnv("ND_COMPUTE_CONTRACT_PREFIX", ""),
+			StorageFabricName:     getEnv("ND_STORAGE_FABRIC_NAME", ""),
+			StorageVRFName:        getEnv("ND_STORAGE_VRF_NAME", ""),
+			StorageNetworkName:    getEnv("ND_STORAGE_NETWORK_NAME", ""),
 			VMFabricName:          getEnv("ND_VM_FABRIC_NAME", ""),
 			SyncIntervalHours:     getEnvInt("ND_SYNC_INTERVAL_HOURS", 6),
 		},

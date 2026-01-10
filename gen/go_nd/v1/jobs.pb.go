@@ -93,17 +93,18 @@ type Job struct {
 	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                                     // Internal UUID
 	SlurmJobId      string                 `protobuf:"bytes,2,opt,name=slurm_job_id,json=slurmJobId,proto3" json:"slurm_job_id,omitempty"`                 // Slurm job ID (unique)
 	Name            string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`                                                 // Job name
-	Status          JobStatus              `protobuf:"varint,4,opt,name=status,proto3,enum=go_nd.v1.JobStatus" json:"status,omitempty"`                    // Current status
-	ErrorMessage    string                 `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`             // Error details if failed
-	FabricName      string                 `protobuf:"bytes,6,opt,name=fabric_name,json=fabricName,proto3" json:"fabric_name,omitempty"`                   // NDFC fabric name
-	VrfName         string                 `protobuf:"bytes,7,opt,name=vrf_name,json=vrfName,proto3" json:"vrf_name,omitempty"`                            // VRF name
-	ContractName    string                 `protobuf:"bytes,8,opt,name=contract_name,json=contractName,proto3" json:"contract_name,omitempty"`             // Contract name
-	SubmittedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=submitted_at,json=submittedAt,proto3" json:"submitted_at,omitempty"`                // When job was submitted
-	ProvisionedAt   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=provisioned_at,json=provisionedAt,proto3" json:"provisioned_at,omitempty"`         // When provisioning completed
-	CompletedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`               // When job completed
-	ExpiresAt       *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`                     // Expiration time (if set)
-	ComputeNodes    []*JobComputeNode      `protobuf:"bytes,13,rep,name=compute_nodes,json=computeNodes,proto3" json:"compute_nodes,omitempty"`            // Assigned compute nodes
-	SecurityGroupId string                 `protobuf:"bytes,14,opt,name=security_group_id,json=securityGroupId,proto3" json:"security_group_id,omitempty"` // Associated security group ID
+	TenantKey       string                 `protobuf:"bytes,4,opt,name=tenant_key,json=tenantKey,proto3" json:"tenant_key,omitempty"`                      // Storage tenant key for tenant-specific storage access
+	Status          JobStatus              `protobuf:"varint,5,opt,name=status,proto3,enum=go_nd.v1.JobStatus" json:"status,omitempty"`                    // Current status
+	ErrorMessage    string                 `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`             // Error details if failed
+	FabricName      string                 `protobuf:"bytes,7,opt,name=fabric_name,json=fabricName,proto3" json:"fabric_name,omitempty"`                   // NDFC fabric name
+	VrfName         string                 `protobuf:"bytes,8,opt,name=vrf_name,json=vrfName,proto3" json:"vrf_name,omitempty"`                            // VRF name
+	ContractName    string                 `protobuf:"bytes,9,opt,name=contract_name,json=contractName,proto3" json:"contract_name,omitempty"`             // Contract name
+	SubmittedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=submitted_at,json=submittedAt,proto3" json:"submitted_at,omitempty"`               // When job was submitted
+	ProvisionedAt   *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=provisioned_at,json=provisionedAt,proto3" json:"provisioned_at,omitempty"`         // When provisioning completed
+	CompletedAt     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`               // When job completed
+	ExpiresAt       *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`                     // Expiration time (if set)
+	ComputeNodes    []*JobComputeNode      `protobuf:"bytes,14,rep,name=compute_nodes,json=computeNodes,proto3" json:"compute_nodes,omitempty"`            // Assigned compute nodes
+	SecurityGroupId string                 `protobuf:"bytes,15,opt,name=security_group_id,json=securityGroupId,proto3" json:"security_group_id,omitempty"` // Associated security group ID
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -155,6 +156,13 @@ func (x *Job) GetSlurmJobId() string {
 func (x *Job) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *Job) GetTenantKey() string {
+	if x != nil {
+		return x.TenantKey
 	}
 	return ""
 }
@@ -311,6 +319,7 @@ type SubmitJobRequest struct {
 	SlurmJobId    string                 `protobuf:"bytes,1,opt,name=slurm_job_id,json=slurmJobId,proto3" json:"slurm_job_id,omitempty"`     // Required: Slurm job ID
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`                                     // Optional: Job name
 	ComputeNodes  []string               `protobuf:"bytes,3,rep,name=compute_nodes,json=computeNodes,proto3" json:"compute_nodes,omitempty"` // Required: List of compute node names
+	Tenant        string                 `protobuf:"bytes,4,opt,name=tenant,proto3" json:"tenant,omitempty"`                                 // Optional: Storage tenant key for tenant-specific storage access
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -364,6 +373,13 @@ func (x *SubmitJobRequest) GetComputeNodes() []string {
 		return x.ComputeNodes
 	}
 	return nil
+}
+
+func (x *SubmitJobRequest) GetTenant() string {
+	if x != nil {
+		return x.Tenant
+	}
+	return ""
 }
 
 // SubmitJobResponse returns the created/existing job
@@ -818,36 +834,39 @@ var File_go_nd_v1_jobs_proto protoreflect.FileDescriptor
 
 const file_go_nd_v1_jobs_proto_rawDesc = "" +
 	"\n" +
-	"\x13go_nd/v1/jobs.proto\x12\bgo_nd.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15go_nd/v1/common.proto\"\xe5\x04\n" +
+	"\x13go_nd/v1/jobs.proto\x12\bgo_nd.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15go_nd/v1/common.proto\"\x84\x05\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12 \n" +
 	"\fslurm_job_id\x18\x02 \x01(\tR\n" +
 	"slurmJobId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12+\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x13.go_nd.v1.JobStatusR\x06status\x12#\n" +
-	"\rerror_message\x18\x05 \x01(\tR\ferrorMessage\x12\x1f\n" +
-	"\vfabric_name\x18\x06 \x01(\tR\n" +
-	"fabricName\x12\x19\n" +
-	"\bvrf_name\x18\a \x01(\tR\avrfName\x12#\n" +
-	"\rcontract_name\x18\b \x01(\tR\fcontractName\x12=\n" +
-	"\fsubmitted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vsubmittedAt\x12A\n" +
-	"\x0eprovisioned_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\rprovisionedAt\x12=\n" +
-	"\fcompleted_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x129\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12=\n" +
-	"\rcompute_nodes\x18\r \x03(\v2\x18.go_nd.v1.JobComputeNodeR\fcomputeNodes\x12*\n" +
-	"\x11security_group_id\x18\x0e \x01(\tR\x0fsecurityGroupId\"\x8b\x01\n" +
+	"tenant_key\x18\x04 \x01(\tR\ttenantKey\x12+\n" +
+	"\x06status\x18\x05 \x01(\x0e2\x13.go_nd.v1.JobStatusR\x06status\x12#\n" +
+	"\rerror_message\x18\x06 \x01(\tR\ferrorMessage\x12\x1f\n" +
+	"\vfabric_name\x18\a \x01(\tR\n" +
+	"fabricName\x12\x19\n" +
+	"\bvrf_name\x18\b \x01(\tR\avrfName\x12#\n" +
+	"\rcontract_name\x18\t \x01(\tR\fcontractName\x12=\n" +
+	"\fsubmitted_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\vsubmittedAt\x12A\n" +
+	"\x0eprovisioned_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\rprovisionedAt\x12=\n" +
+	"\fcompleted_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x129\n" +
+	"\n" +
+	"expires_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12=\n" +
+	"\rcompute_nodes\x18\x0e \x03(\v2\x18.go_nd.v1.JobComputeNodeR\fcomputeNodes\x12*\n" +
+	"\x11security_group_id\x18\x0f \x01(\tR\x0fsecurityGroupId\"\x8b\x01\n" +
 	"\x0eJobComputeNode\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12&\n" +
 	"\x0fcompute_node_id\x18\x03 \x01(\tR\rcomputeNodeId\x12*\n" +
-	"\x11compute_node_name\x18\x04 \x01(\tR\x0fcomputeNodeName\"m\n" +
+	"\x11compute_node_name\x18\x04 \x01(\tR\x0fcomputeNodeName\"\x85\x01\n" +
 	"\x10SubmitJobRequest\x12 \n" +
 	"\fslurm_job_id\x18\x01 \x01(\tR\n" +
 	"slurmJobId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
-	"\rcompute_nodes\x18\x03 \x03(\tR\fcomputeNodes\"N\n" +
+	"\rcompute_nodes\x18\x03 \x03(\tR\fcomputeNodes\x12\x16\n" +
+	"\x06tenant\x18\x04 \x01(\tR\x06tenant\"N\n" +
 	"\x11SubmitJobResponse\x12\x1f\n" +
 	"\x03job\x18\x01 \x01(\v2\r.go_nd.v1.JobR\x03job\x12\x18\n" +
 	"\acreated\x18\x02 \x01(\bR\acreated\"1\n" +

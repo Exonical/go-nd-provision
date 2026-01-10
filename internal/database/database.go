@@ -86,6 +86,7 @@ func Migrate() error {
 		&models.Switch{},
 		&models.SwitchPort{},
 		&models.ComputeNode{},
+		&models.ComputeNodeInterface{},
 		&models.ComputeNodePortMapping{},
 		&models.SecurityGroup{},
 		&models.PortSelector{},
@@ -96,6 +97,8 @@ func Migrate() error {
 		&models.JobComputeNode{},
 		&models.ComputeNodeAllocation{},
 		&models.Tenant{},
+		&models.StorageTenant{},
+		&models.JobStorageAccess{},
 		&models.VM{},
 	)
 	if err != nil {

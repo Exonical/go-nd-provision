@@ -43,17 +43,18 @@ message Job {
   string id = 1;                                    // Internal UUID
   string slurm_job_id = 2;                          // Slurm job ID (unique)
   string name = 3;                                  // Job name
-  JobStatus status = 4;                             // Current status
-  string error_message = 5;                         // Error details if failed
-  string fabric_name = 6;                           // NDFC fabric name
-  string vrf_name = 7;                              // VRF name
-  string contract_name = 8;                         // Contract name
-  google.protobuf.Timestamp submitted_at = 9;       // When job was submitted
-  google.protobuf.Timestamp provisioned_at = 10;   // When provisioning completed
-  google.protobuf.Timestamp completed_at = 11;     // When job completed
-  google.protobuf.Timestamp expires_at = 12;       // Expiration time (if set)
-  repeated JobComputeNode compute_nodes = 13;      // Assigned compute nodes
-  string security_group_id = 14;                   // Associated security group ID
+  string tenant_key = 4;                            // Storage tenant key for tenant-specific storage access
+  JobStatus status = 5;                             // Current status
+  string error_message = 6;                         // Error details if failed
+  string fabric_name = 7;                           // NDFC fabric name
+  string vrf_name = 8;                              // VRF name
+  string contract_name = 9;                         // Contract name
+  google.protobuf.Timestamp submitted_at = 10;      // When job was submitted
+  google.protobuf.Timestamp provisioned_at = 11;   // When provisioning completed
+  google.protobuf.Timestamp completed_at = 12;     // When job completed
+  google.protobuf.Timestamp expires_at = 13;       // Expiration time (if set)
+  repeated JobComputeNode compute_nodes = 14;      // Assigned compute nodes
+  string security_group_id = 15;                   // Associated security group ID
 }
 
 // JobComputeNode links a job to a compute node
@@ -69,6 +70,7 @@ message SubmitJobRequest {
   string slurm_job_id = 1;          // Required: Slurm job ID
   string name = 2;                   // Optional: Job name
   repeated string compute_nodes = 3; // Required: List of compute node names
+  string tenant = 4;                 // Optional: Storage tenant key for tenant-specific storage access
 }
 
 // SubmitJobResponse returns the created/existing job

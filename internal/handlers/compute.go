@@ -1,19 +1,27 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/banglin/go-nd/internal/database"
+	"github.com/banglin/go-nd/internal/logger"
 	"github.com/banglin/go-nd/internal/models"
+	"github.com/banglin/go-nd/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
-type ComputeHandler struct{}
+type ComputeHandler struct {
+	storageService *services.StorageService
+}
 
-func NewComputeHandler() *ComputeHandler {
-	return &ComputeHandler{}
+func NewComputeHandler(storageService *services.StorageService) *ComputeHandler {
+	return &ComputeHandler{
+		storageService: storageService,
+	}
 }
 
 // CreateComputeNode creates a new compute node
@@ -45,6 +53,19 @@ func (h *ComputeHandler) CreateComputeNode(c *gin.Context) {
 		return
 	}
 
+	// Create storage SG in NDFC for this node (best-effort, no port selectors yet)
+	if h.storageService != nil {
+		ctx := context.Background()
+		if _, err := h.storageService.EnsureNodeStorageSG(ctx, &node, nil, ""); err != nil {
+			logger.Warn("Failed to create storage SG for new compute node",
+				zap.String("node", node.Name),
+				zap.Error(err))
+		} else {
+			logger.Info("Created storage SG for compute node",
+				zap.String("node", node.Name))
+		}
+	}
+
 	c.JSON(http.StatusCreated, node)
 }
 
@@ -61,10 +82,8 @@ func (h *ComputeHandler) GetComputeNodes(c *gin.Context) {
 // findComputeNode resolves a compute node by ID or name
 func (h *ComputeHandler) findComputeNode(idOrName string) (*models.ComputeNode, error) {
 	var node models.ComputeNode
-	if err := database.DB.First(&node, "id = ?", idOrName).Error; err == nil {
-		return &node, nil
-	}
-	if err := database.DB.Where("name = ?", idOrName).First(&node).Error; err == nil {
+	// Use Where().First() to avoid GORM logging "record not found" for expected fallback behavior
+	if err := database.DB.Where("id = ? OR name = ?", idOrName, idOrName).First(&node).Error; err == nil {
 		return &node, nil
 	}
 	return nil, fmt.Errorf("compute node not found")
@@ -305,12 +324,23 @@ func (h *ComputeHandler) DeletePortMapping(c *gin.Context) {
 
 // GetComputeNodesBySwitch returns all compute nodes connected to a specific switch
 func (h *ComputeHandler) GetComputeNodesBySwitch(c *gin.Context) {
-	switchID := c.Param("switchId")
+	switchIDOrName := c.Param("switchId")
+
+	// Resolve switch by ID, serial number, or name
+	var sw models.Switch
+	if err := database.DB.First(&sw, "id = ?", switchIDOrName).Error; err != nil {
+		if err := database.DB.Where("serial_number = ?", switchIDOrName).First(&sw).Error; err != nil {
+			if err := database.DB.Where("name = ?", switchIDOrName).First(&sw).Error; err != nil {
+				c.JSON(http.StatusOK, []models.ComputeNodePortMapping{})
+				return
+			}
+		}
+	}
 
 	var mappings []models.ComputeNodePortMapping
 	if err := database.DB.
 		Joins("JOIN switch_ports ON switch_ports.id = compute_node_port_mappings.switch_port_id").
-		Where("switch_ports.switch_id = ?", switchID).
+		Where("switch_ports.switch_id = ?", sw.ID).
 		Preload("ComputeNode").
 		Preload("SwitchPort").
 		Find(&mappings).Error; err != nil {
