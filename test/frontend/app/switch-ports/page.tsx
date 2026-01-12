@@ -16,6 +16,10 @@ import {
   PortMapping,
   BulkPortAssignment,
 } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface PortAssignment {
   port: SwitchPort;
@@ -185,121 +189,103 @@ export default function SwitchPortsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Switch Ports</h1>
-          <p className="text-zinc-400">Bulk assign switch ports to compute nodes and interfaces</p>
+          <h1 className="text-2xl font-bold text-foreground">Switch Ports</h1>
+          <p className="text-muted-foreground">Bulk assign switch ports to compute nodes and interfaces</p>
         </div>
-        <Link
-          href="/"
-          className="text-blue-400 hover:text-blue-300"
-        >
-          ← Back to Dashboard
-        </Link>
+        <Button variant="outline" asChild>
+          <Link href="/">← Back to Dashboard</Link>
+        </Button>
       </div>
 
       {/* Fabric and Switch Selection */}
-      <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1">Fabric</label>
-            <select
-              value={selectedFabric}
-              onChange={(e) => setSelectedFabric(e.target.value)}
-              className="w-full border border-zinc-700 bg-zinc-800 text-zinc-100 rounded-md px-3 py-2"
-            >
-              <option value="">Select a fabric...</option>
-              {fabrics.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Fabric</label>
+              <select
+                value={selectedFabric}
+                onChange={(e) => setSelectedFabric(e.target.value)}
+                className="w-full border border-input bg-background text-foreground rounded-md px-3 py-2"
+              >
+                <option value="">Select a fabric...</option>
+                {fabrics.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Switch</label>
+              <select
+                value={selectedSwitch}
+                onChange={(e) => setSelectedSwitch(e.target.value)}
+                disabled={!selectedFabric}
+                className="w-full border border-input bg-background text-foreground rounded-md px-3 py-2 disabled:opacity-50"
+              >
+                <option value="">Select a switch...</option>
+                {switches.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.serial_number})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1">Switch</label>
-            <select
-              value={selectedSwitch}
-              onChange={(e) => setSelectedSwitch(e.target.value)}
-              disabled={!selectedFabric}
-              className="w-full border border-zinc-700 bg-zinc-800 text-zinc-100 rounded-md px-3 py-2 disabled:bg-zinc-900 disabled:text-zinc-500"
-            >
-              <option value="">Select a switch...</option>
-              {switches.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.serial_number})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Error/Success Messages */}
       {error && (
-        <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded">
+        <div className="bg-destructive/20 border border-destructive text-destructive px-4 py-3 rounded-md">
           {error}
         </div>
       )}
       {successMessage && (
-        <div className="bg-green-900/50 border border-green-700 text-green-300 px-4 py-3 rounded">
+        <div className="bg-green-900/50 border border-green-700 text-green-300 px-4 py-3 rounded-md">
           {successMessage}
         </div>
       )}
 
       {/* Port Assignments Table */}
       {selectedSwitch && (
-        <div className="bg-zinc-900 rounded-lg border border-zinc-800">
-          <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-zinc-100">Port Assignments</h2>
-            <div className="flex items-center gap-4">
-              {hasChanges && (
-                <span className="text-sm text-orange-400">
-                  {changedCount} unsaved change{changedCount !== 1 ? 's' : ''}
-                </span>
-              )}
-              <button
-                onClick={handleReset}
-                disabled={!hasChanges || saving}
-                className="px-4 py-2 text-zinc-300 border border-zinc-600 rounded hover:bg-zinc-800 disabled:opacity-50"
-              >
-                Reset
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!hasChanges || saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="p-8 text-center text-zinc-500">Loading ports...</div>
-          ) : assignments.length === 0 ? (
-            <div className="p-8 text-center text-zinc-500">No ports found</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-zinc-800">
-                <thead className="bg-zinc-800/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">
-                      Port
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">
-                      Compute Node
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">
-                      Interface
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Port Assignments</CardTitle>
+            <CardAction>
+              <div className="flex items-center gap-4">
+                {hasChanges && (
+                  <span className="text-sm text-orange-400">
+                    {changedCount} unsaved change{changedCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+                <Button variant="outline" onClick={handleReset} disabled={!hasChanges || saving}>
+                  Reset
+                </Button>
+                <Button onClick={handleSave} disabled={!hasChanges || saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="p-8 text-center text-muted-foreground">Loading ports...</div>
+            ) : assignments.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">No ports found</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Port</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Compute Node</TableHead>
+                    <TableHead>Interface</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {assignments.map((assignment) => {
                     const isChanged =
                       assignment.nodeId !== assignment.originalNodeId ||
@@ -309,19 +295,10 @@ export default function SwitchPortsPage() {
                       : [];
 
                     return (
-                      <tr
-                        key={assignment.port.id}
-                        className={isChanged ? 'bg-yellow-900/20' : ''}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="font-medium text-zinc-100">
-                            {assignment.port.name}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-400">
-                          {assignment.port.description || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                      <TableRow key={assignment.port.id} className={isChanged ? 'bg-yellow-900/20' : ''}>
+                        <TableCell className="font-medium">{assignment.port.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{assignment.port.description || '-'}</TableCell>
+                        <TableCell>
                           <select
                             value={assignment.nodeId || ''}
                             onChange={(e) =>
@@ -331,7 +308,7 @@ export default function SwitchPortsPage() {
                                 e.target.value || null
                               )
                             }
-                            className="border border-zinc-700 bg-zinc-800 text-zinc-100 rounded px-2 py-1 text-sm w-48"
+                            className="border border-input bg-background text-foreground rounded px-2 py-1 text-sm w-48"
                           >
                             <option value="">-- None --</option>
                             {nodes.map((node) => (
@@ -340,8 +317,8 @@ export default function SwitchPortsPage() {
                               </option>
                             ))}
                           </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        </TableCell>
+                        <TableCell>
                           <select
                             value={assignment.interfaceId || ''}
                             onChange={(e) =>
@@ -352,7 +329,7 @@ export default function SwitchPortsPage() {
                               )
                             }
                             disabled={!assignment.nodeId}
-                            className="border border-zinc-700 bg-zinc-800 text-zinc-100 rounded px-2 py-1 text-sm w-32 disabled:bg-zinc-900 disabled:text-zinc-500"
+                            className="border border-input bg-background text-foreground rounded px-2 py-1 text-sm w-32 disabled:opacity-50"
                           >
                             <option value="">-- None --</option>
                             {interfaces.map((iface) => (
@@ -361,30 +338,26 @@ export default function SwitchPortsPage() {
                               </option>
                             ))}
                           </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        </TableCell>
+                        <TableCell>
                           {isChanged ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-900/50 text-yellow-300">
+                            <Badge variant="outline" className="bg-yellow-900/50 text-yellow-300 border-yellow-700">
                               Modified
-                            </span>
+                            </Badge>
                           ) : assignment.nodeId ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-300">
-                              Assigned
-                            </span>
+                            <Badge variant="success">Assigned</Badge>
                           ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-700 text-zinc-300">
-                              Unassigned
-                            </span>
+                            <Badge variant="secondary">Unassigned</Badge>
                           )}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -1,0 +1,71 @@
+# Development compose - single instance without Nginx
+# Usage: podman-compose -f docker-compose.dev.yml up -d
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-nd-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      VALKEY_ADDRESS: valkey:6379
+      ENABLE_HTTP: "true"
+      ENABLE_GRPC: "true"
+      ENABLE_SYNC: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:17
+    container_name: go-nd-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gond
+      POSTGRES_PASSWORD: gond
+      POSTGRES_DB: gond
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gond -d gond"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:9
+    container_name: go-nd-valkey
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+      - ./valkey/users.acl:/etc/valkey/users.acl:z
+    command: >
+      valkey-server
+      --aclfile /etc/valkey/users.acl
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-u", "valkey://gond:gond@localhost:6379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  valkey_data:

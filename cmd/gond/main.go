@@ -85,7 +85,7 @@ func main() {
 	// Start background sync worker
 	var syncWorker *backgroundsync.Worker
 	if cfg.Server.EnableSync && ndClient != nil {
-		syncWorker = backgroundsync.NewWorker(ndClient, &cfg.NexusDashboard)
+		syncWorker = backgroundsync.NewWorker(ndClient, &cfg.NexusDashboard, cfg.Server.InstanceID)
 		syncWorker.Start()
 		logger.Info("Background sync worker started")
 	}

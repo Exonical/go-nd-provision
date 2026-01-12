@@ -1,26 +1,114 @@
+# Podman Compose with multiple app instances and Nginx load balancer
+# Usage: podman-compose up -d --scale app=3
+
 services:
-  app:
+  # Nginx load balancer for HTTP and gRPC
+  nginx:
+    image: nginx:alpine
+    container_name: go-nd-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"      # HTTP
+      - "50051:50051"  # gRPC
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro,z
+    depends_on:
+      - app-1
+      - app-2
+      - app-3
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # App instance 1
+  app-1:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: go-nd-app
+    container_name: go-nd-app-1
     restart: unless-stopped
-    ports:
-      - "8080:8080"
     env_file:
       - .env
     environment:
-      # Override DB/Valkey hosts for container networking
       DB_HOST: postgres
-      VALKEY_HOST: valkey
+      VALKEY_ADDRESS: valkey:6379
+      ENABLE_HTTP: "true"
+      ENABLE_GRPC: "true"
+      ENABLE_SYNC: "true"
+      GRPC_AUTH_TOKEN: "${GRPC_AUTH_TOKEN:-changeme}"
+      INSTANCE_ID: app-1
     depends_on:
       postgres:
         condition: service_healthy
       valkey:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
+  # App instance 2
+  app-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-nd-app-2
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      VALKEY_ADDRESS: valkey:6379
+      ENABLE_HTTP: "true"
+      ENABLE_GRPC: "true"
+      ENABLE_SYNC: "true"
+      GRPC_AUTH_TOKEN: "${GRPC_AUTH_TOKEN:-changeme}"
+      INSTANCE_ID: app-2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # App instance 3
+  app-3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-nd-app-3
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      VALKEY_ADDRESS: valkey:6379
+      ENABLE_HTTP: "true"
+      ENABLE_GRPC: "true"
+      ENABLE_SYNC: "true"
+      GRPC_AUTH_TOKEN: "${GRPC_AUTH_TOKEN:-changeme}"
+      INSTANCE_ID: app-3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL database
   postgres:
-    image: postgres:18
+    image: postgres:17
     container_name: go-nd-postgres
     restart: unless-stopped
     environment:
@@ -30,13 +118,14 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gond -d gond"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # Valkey (Redis-compatible) cache
   valkey:
     image: valkey/valkey:9
     container_name: go-nd-valkey

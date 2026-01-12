@@ -31,6 +31,7 @@ export interface Switch {
   model: string;
   ip_address: string;
   fabric_id: string;
+  ports?: SwitchPort[];
   created_at: string;
   updated_at: string;
 }

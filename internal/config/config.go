@@ -24,9 +24,10 @@ type Config struct {
 type ServerConfig struct {
 	Port       string
 	Mode       string
-	EnableHTTP bool // Enable HTTP/REST server
-	EnableGRPC bool // Enable gRPC server
-	EnableSync bool // Enable background sync worker
+	EnableHTTP bool   // Enable HTTP/REST server
+	EnableGRPC bool   // Enable gRPC server
+	EnableSync bool   // Enable background sync worker
+	InstanceID string // Unique instance ID for distributed locking (auto-generated if empty)
 }
 
 type GRPCConfig struct {
@@ -88,6 +89,7 @@ func Load() *Config {
 			EnableHTTP: getEnvBool("ENABLE_HTTP", true),
 			EnableGRPC: getEnvBool("ENABLE_GRPC", false),
 			EnableSync: getEnvBool("ENABLE_SYNC", true),
+			InstanceID: getEnv("INSTANCE_ID", ""),
 		},
 		GRPC: GRPCConfig{
 			Port:       getEnv("GRPC_PORT", "50051"),

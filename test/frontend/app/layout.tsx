@@ -24,23 +24,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-zinc-950`}>
-        <nav className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+    <html lang="en" className="dark">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
+        <nav className="bg-card border-b border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-8">
-                <Link href="/" className="text-xl font-bold text-zinc-900 dark:text-white">
+                <Link href="/" className="text-xl font-bold text-foreground">
                   go-nd
                 </Link>
                 <div className="flex gap-4">
-                  <Link href="/fabrics" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+                  <Link href="/fabrics" className="text-muted-foreground hover:text-foreground transition-colors">
                     Fabrics
                   </Link>
-                  <Link href="/compute-nodes" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+                  <Link href="/compute-nodes" className="text-muted-foreground hover:text-foreground transition-colors">
                     Compute Nodes
                   </Link>
-                  <Link href="/storage-tenants" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+                  <Link href="/interfaces" className="text-muted-foreground hover:text-foreground transition-colors">
+                    Interfaces
+                  </Link>
+                  <Link href="/switch-ports" className="text-muted-foreground hover:text-foreground transition-colors">
+                    Switch Ports
+                  </Link>
+                  <Link href="/storage-tenants" className="text-muted-foreground hover:text-foreground transition-colors">
                     Storage Tenants
                   </Link>
                 </div>

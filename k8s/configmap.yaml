@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: go-nd-config
+  namespace: go-nd
+  labels:
+    app.kubernetes.io/name: go-nd
+data:
+  SERVER_PORT: "8080"
+  GIN_MODE: "release"
+  ENABLE_HTTP: "true"
+  ENABLE_GRPC: "true"
+  ENABLE_SYNC: "true"
+  GRPC_PORT: "50051"
+  GRPC_REFLECTION: "true"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "gond"
+  DB_SSLMODE: "disable"
+  VALKEY_ADDRESS: "valkey:6379"
+  VALKEY_DB: "0"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: go-nd
+  labels:
+    app.kubernetes.io/name: go-nd
+    app.kubernetes.io/component: nginx
+data:
+  default.conf: |
+    upstream gond_http {
+        least_conn;
+        server go-nd-app-0.go-nd-app:8080;
+        server go-nd-app-1.go-nd-app:8080;
+        server go-nd-app-2.go-nd-app:8080;
+    }
+
+    upstream gond_grpc {
+        least_conn;
+        server go-nd-app-0.go-nd-app:50051;
+        server go-nd-app-1.go-nd-app:50051;
+        server go-nd-app-2.go-nd-app:50051;
+    }
+
+    server {
+        listen 80;
+        server_name _;
+
+        location /health {
+            access_log off;
+            proxy_pass http://gond_http;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location / {
+            proxy_pass http://gond_http;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }
+    }
+
+    server {
+        listen 50051;
+        http2 on;
+        server_name _;
+
+        location / {
+            grpc_pass grpc://gond_grpc;
+            grpc_set_header Host $host;
+            grpc_set_header X-Real-IP $remote_addr;
+            grpc_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            grpc_connect_timeout 60s;
+            grpc_send_timeout 60s;
+            grpc_read_timeout 60s;
+        }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valkey-acl
+  namespace: go-nd
+  labels:
+    app.kubernetes.io/name: go-nd
+    app.kubernetes.io/component: valkey
+data:
+  users.acl: |
+    user default off resetchannels -@all
+    user gond on >gond ~gond:* &* +@all -@dangerous -@admin +eval +evalsha
+    user gond_readonly on >gond_ro ~gond:* &* +@read +@connection -@dangerous

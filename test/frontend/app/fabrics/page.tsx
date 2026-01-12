@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { fabricsAPI, Fabric } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ChevronRight } from 'lucide-react';
 
 export default function FabricsPage() {
   const [fabrics, setFabrics] = useState<Fabric[]>([]);
@@ -43,43 +46,37 @@ export default function FabricsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Fabrics</h1>
-          <p className="text-zinc-600 dark:text-zinc-400">Nexus Dashboard fabrics</p>
+          <h1 className="text-2xl font-bold text-foreground">Fabrics</h1>
+          <p className="text-muted-foreground">Nexus Dashboard fabrics</p>
         </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
+        <Button onClick={handleSync} disabled={syncing}>
           {syncing ? 'Syncing...' : 'Sync from NDFC'}
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg">
+        <div className="p-4 bg-destructive/20 text-destructive rounded-lg">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
+        <div className="text-muted-foreground">Loading...</div>
       ) : fabrics.length === 0 ? (
-        <div className="text-zinc-600 dark:text-zinc-400">No fabrics found. Click &quot;Sync from NDFC&quot; to fetch fabrics.</div>
+        <div className="text-muted-foreground">No fabrics found. Click &quot;Sync from NDFC&quot; to fetch fabrics.</div>
       ) : (
         <div className="grid gap-4">
           {fabrics.map((fabric) => (
-            <Link
-              key={fabric.id}
-              href={`/fabrics/${encodeURIComponent(fabric.name)}`}
-              className="block p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{fabric.name}</h2>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">Type: {fabric.type || 'N/A'}</p>
-                </div>
-                <span className="text-zinc-400">→</span>
-              </div>
+            <Link key={fabric.id} href={`/fabrics/${encodeURIComponent(fabric.name)}`}>
+              <Card className="hover:border-primary transition-colors cursor-pointer">
+                <CardHeader className="flex-row items-center justify-between py-4">
+                  <div>
+                    <CardTitle className="text-lg">{fabric.name}</CardTitle>
+                    <CardDescription>Type: {fabric.type || 'N/A'}</CardDescription>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+              </Card>
             </Link>
           ))}
         </div>

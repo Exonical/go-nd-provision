@@ -35,10 +35,12 @@ type Worker struct {
 }
 
 // NewWorker creates a new sync worker
-func NewWorker(ndClient *ndclient.Client, cfg *config.NexusDashboardConfig) *Worker {
+func NewWorker(ndClient *ndclient.Client, cfg *config.NexusDashboardConfig, instanceID string) *Worker {
 	ctx, cancel := context.WithCancel(context.Background())
-	// Generate instance ID from hostname + pid for debugging multi-instance issues
-	instanceID := generateInstanceID()
+	// Use provided instance ID or generate one from hostname + pid
+	if instanceID == "" {
+		instanceID = generateInstanceID()
+	}
 	return &Worker{
 		ndClient:   ndClient,
 		interval:   time.Duration(cfg.SyncIntervalHours) * time.Hour,

@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: go-nd
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - postgres.yaml
+  - valkey.yaml
+  - app.yaml
+  - nginx.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
