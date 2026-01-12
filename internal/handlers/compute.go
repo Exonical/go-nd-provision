@@ -218,6 +218,12 @@ func (h *ComputeHandler) AddPortMapping(c *gin.Context) {
 		return
 	}
 
+	// Delete any existing mapping for this port (reassignment)
+	if err := database.DB.Where("switch_port_id = ?", port.ID).Delete(&models.ComputeNodePortMapping{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove existing mapping: " + err.Error()})
+		return
+	}
+
 	mapping := models.ComputeNodePortMapping{
 		ID:            uuid.New().String(),
 		ComputeNodeID: node.ID,
